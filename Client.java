@@ -42,23 +42,23 @@ public class Client {
         switch (protocol) {
             case "BACKUP":
                 int repDegree = Integer.parseInt(args[3]);
-                // peer.backup("Backup" + filePath, repDegree);
+                peer.backup(filePath, repDegree);
                 System.out.println("\nBackup finished successfully\n");
                 break;
 
             case "RESTORE":
-                // peer.restore(filePath);
+                peer.restore(filePath);
                 System.out.println("\nRestore finished successfully\n");
                 break;
 
             case "DELETE":
-                // peer.delete("../TestFiles/" + filePath);
+                peer.delete(filePath);
                 System.out.println("\nFile deleted successfully\n");
                 break;
 
             case "RECLAIM":
                 int size = Integer.parseInt(args[2]);
-                // peer.reclaim(size);
+                peer.reclaim(size);
                 System.out.println("\nSpace reclaimed successfully\n");
                 break;
         }

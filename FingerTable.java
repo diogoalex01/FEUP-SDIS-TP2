@@ -1,13 +1,12 @@
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.math.BigInteger;
+import java.util.ArrayList;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.security.MessageDigest;
 
 public class FingerTable {
-    private ArrayList<InetSocketAddress> table;
+    private ArrayList<OutsidePeer> table;
     private int numOfEntries;
     // private String localAddress = "127.0.0.1";
 
@@ -17,54 +16,52 @@ public class FingerTable {
     }
 
     public int getSize() {
-        return table.size();
+        return numOfEntries;
+    }
+
+    public OutsidePeer getPeer(int index) {
+        return table.get(index);
     }
 
     public boolean isEmpty() {
         return table.isEmpty();
     }
 
-    public void add(String ipAddress, int port) throws UnknownHostException {
-        InetAddress inetAddress = InetAddress.getByName(ipAddress);
-        InetSocketAddress address = new InetSocketAddress(inetAddress, port);
-        table.add(address);
+    public void add(OutsidePeer outsidePeer, int index) throws UnknownHostException {
+        table.add(index, outsidePeer);
     }
 
-    public synchronized void updateFingers(int i, InetSocketAddress value) {
-        if (i > 0 && i <= numOfEntries) {
-            updateIthFinger(i, value);
-        }
-        // else if (i == -1) {
-        // deleteSuccessor();
-        // } else if (i == -2) {
-        // deleteCertainFinger(value);
-        // } else if (i == -3) {
-        // fillSuccessor();
-        // }
-    }
-
-    private void updateIthFinger(int i, InetSocketAddress value) {
-        // table.put(i, value);
-
-        // // if the updated one is successor, notify the new successor
-        // if (i == 1 && value != null && !value.equals(localAddress)) {
-        // // notify(value);
-        // }
-    }
-
-    // Utility Methods
-    public static BigInteger getId(String ip, int port) {
-        return getSHA1(ip + ":" + port);
-    }
-
-    public static BigInteger getSHA1(String input) {
+    public synchronized void updateFingers(InetSocketAddress inetSocketAddress, int index) {
+        OutsidePeer outsidePeer = new OutsidePeer(inetSocketAddress);
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            byte[] encoded = digest.digest(input.getBytes());
-            return new BigInteger(1, encoded);
-        } catch (Exception e) {
+            add(outsidePeer, index);
+        } catch (UnknownHostException e) {
             e.printStackTrace();
-            return new BigInteger(1, "0".getBytes());
         }
+    }
+
+    public BigInteger calculateFinger(BigInteger peerID, int i) {
+        return ((peerID.add(new BigInteger("2").pow(i))).mod(new BigInteger("2").pow(this.getSize())));
+    }
+
+    public OutsidePeer getNearestPeer(BigInteger fileId) {
+        OutsidePeer receiverPeer = table.get(0);
+
+        for (int i = 1; i < table.size(); i++) {
+            BigInteger peerId = table.get(i).getId();
+
+            if (peerId.compareTo(fileId) == -1 || peerId.compareTo(fileId) == 0) {
+                if (peerId.compareTo(fileId) == 0) {
+                    receiverPeer = table.get(i);
+                    break;
+                }
+
+                if (peerId.compareTo(receiverPeer.getId()) == 1) {
+                    receiverPeer = table.get(i);
+                }
+            }
+        }
+
+        return receiverPeer;
     }
 }

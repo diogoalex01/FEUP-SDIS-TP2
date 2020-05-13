@@ -7,7 +7,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class FileInfo {
-    private String id;
+    private BigInteger id;
     private int replicationDegree;
     private String fileName;
 
@@ -15,7 +15,8 @@ public class FileInfo {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         String hashInput = file.getName() + file.lastModified() + Files.getOwner(file.toPath());
 
-        this.id = toHexString(md.digest(hashInput.getBytes(StandardCharsets.UTF_8)));
+        this.id = Helper.getFileId(fileName);
+        // this.id = toHexString(md.digest(hashInput.getBytes(StandardCharsets.UTF_8)));
         this.setReplicationDegree(replicationDegree);
         this.fileName = file.getName();
     }
@@ -35,7 +36,7 @@ public class FileInfo {
         return hexString.toString();
     }
 
-    public String getid() {
+    public BigInteger getId() {
         return this.id;
     }
 

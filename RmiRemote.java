@@ -4,12 +4,12 @@ import javax.net.ssl.SSLSocket;
 
 public interface RmiRemote extends Remote {
 
-    String backup(String[] request) throws RemoteException;
+    String backup(String fileName, int replicationDegree);
 
-    String restore(String[] request) throws RemoteException;
+    String restore(String fileName);
 
-    String delete(String[] request) throws RemoteException;
-    
-    String reclaim(String[] request) throws RemoteException;
+    String delete(String fileName);
+
+    String reclaim(int space);
 
 }
