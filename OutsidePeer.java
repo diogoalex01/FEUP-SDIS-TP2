@@ -34,7 +34,7 @@ public class OutsidePeer {
 
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-
+        System.out.println(message);
         out.writeBytes(message);
         String response = in.readLine();
         in.close();

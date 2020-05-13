@@ -41,7 +41,7 @@ class RequestHandler implements Runnable {
 
             String[] request = in.readLine().split(" ");
             String response = "";
-
+            System.out.println(request[0]);
             switch (request[0]) {
                 case "SUCCESSOR":
                     response = findSuccessor(request);

@@ -3,18 +3,11 @@ import java.math.BigInteger;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLSocket;
 
 public class Peer implements RmiRemote {
     private BigInteger id;
@@ -22,6 +15,7 @@ public class Peer implements RmiRemote {
     private int port;
     private OutsidePeer successor;
     private FingerTable fingerTable;
+    private RequestListener listener;
     private Chord chord;
     private final int numberOfNodes = 8;
     private ScheduledThreadPoolExecutor executor;
@@ -32,6 +26,7 @@ public class Peer implements RmiRemote {
     public Peer(String accessPoint, int port, String otherIpAddress, int otherPort)
             throws UnknownHostException, IOException {
 
+        setJSSEProperties();
         String ipAddress = new String();
         // Find IP Address
         try (final DatagramSocket socket = new DatagramSocket()) {
@@ -48,11 +43,14 @@ public class Peer implements RmiRemote {
 
         // initialize finger table
         fingerTable = new FingerTable(numberOfNodes);
+        this.listener = new RequestListener(this);
         if (otherPort != -1) {
-            fingerTable.add(otherIpAddress, otherPort);
+            InetAddress otherADdress = InetAddress.getByName(otherIpAddress);
+            this.successor = new OutsidePeer(FingerTable.getId(otherIpAddress, otherPort),
+                    new InetSocketAddress(otherADdress, otherPort));
+            this.successor.findSuccessor(this.id);
         }
-
-        initializeSSL();
+        executor.execute(this.listener);
     }
 
     public ScheduledThreadPoolExecutor getExecutor() {
@@ -78,7 +76,6 @@ public class Peer implements RmiRemote {
     public OutsidePeer getSuccessor() {
         return successor;
     }
-
 
     /**
      * Set JSSE Properties
@@ -143,32 +140,31 @@ public class Peer implements RmiRemote {
         // +Peer access point
         // +Peer port
         // ?Peer ip
-        Peer server;
-        String accessPoint = args[0];
-        int port = Integer.parseInt(args[1]);
-
-        if (args.length == 2 || args.length == 4) {
+        if (args.length != 2 && args.length != 4) {
             System.out.println(
-                    "\n Usage:\tPeer <port_number>\n\tPeer <port_number> <network_address> <port_number_peer>");
+                    "\n Usage:\tPeer <network_address> <port_number>\n\tPeer <network_address> <port_number> <network_address> <port_number_peer>");
             return;
         }
-
+        String Adress = args[0];
+        int port = Integer.parseInt(args[1]);
+        Peer server;
         try {
             if (args.length == 4) {
-                int otherPort = Integer.parseInt(args[2]);
-                String otherIpAddress = args[3];
-                server = new Peer(accessPoint, port, otherIpAddress, otherPort);
+
+                String otherIpAddress = args[2];
+                int otherPort = Integer.parseInt(args[3]);
+                server = new Peer(Adress, port, otherIpAddress, otherPort);
                 // public Peer(String accessPoint, int port, String otherIpAddress, String
                 // otherPort)
             } else {
-                server = new Peer(accessPoint, port, "0", -1);
+                server = new Peer(Adress, port, "0", -1);
             }
 
-            RmiRemote stub = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
-            Registry registry = LocateRegistry.getRegistry();
-            registry.rebind(accessPoint, stub);
-            setJSSEProperties();
-            System.out.println("Server ready");
+            // RmiRemote stub = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
+            // Registry registry = LocateRegistry.getRegistry();
+            // registry.rebind(accessPoint, stub);
+            // setJSSEProperties();
+            // System.out.println("Server ready");
 
         } catch (Exception e) {
             System.err.println("Server exception: " + e.toString());
