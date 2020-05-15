@@ -23,12 +23,30 @@ public class ProtocolHandler {
         // FORWARD <file_key> <rep_degree> <body>
         BigInteger fileKey = new BigInteger(request[1]);
         int replicationDegree = Integer.parseInt(request[2]);
-        int port = Integer.parseInt(request[3]);
+        byte[] body = request[3].getBytes(StandardCharsets.UTF_8);
 
-        if (peer.getSuccessor().middlePeer(fileKey, peer.getId())) {
-            // TODO: enviar backup
+        OutsidePeer outsidePeer = this.peer.getSuccessor();
+
+        if (Helper.middlePeer(fileKey, peer.getId(), peer.getSuccessor().getId())) {
+
+            String message = "BACKUP " + fileKey + " " + replicationDegree + " " + body + "\n";
+            try {
+                this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
         } else {
-            // TODO: forward to next peer;
+
+            // FORWARD <file_key> <rep_degree> <body>
+            String message = "FORWARD " + fileKey + " " + replicationDegree + " " + body + "\n";
+            try {
+                this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
 
         return "OK";
@@ -39,10 +57,10 @@ public class ProtocolHandler {
         try {
             String fileKey = request[1];
             int replicationDegree = Integer.parseInt(request[2]);
-            int port = Integer.parseInt(request[3]);
-            byte[] body = request[4].getBytes(StandardCharsets.UTF_8);
+            byte[] body = request[3].getBytes(StandardCharsets.UTF_8);
+
             // TODO ver se o file foi enviado por mim
-            if (replicationDegree < 1) {
+            if (replicationDegree < 1 || this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
                 return "OK";
             }
 
@@ -66,11 +84,9 @@ public class ProtocolHandler {
             replicationDegree--;
 
             if (replicationDegree > 1) {
-                // TODO: send backup ao successor
+
                 OutsidePeer outsidePeer = this.peer.getSuccessor();
-                String message = "BACKUP " + fileKey + " " + replicationDegree + " "
-                        + outsidePeer.getInetSocketAddress().getAddress() + " "
-                        + outsidePeer.getInetSocketAddress().getPort() + " " + body + "\n";
+                String message = "BACKUP " + fileKey + " " + replicationDegree + " " + body + "\n";
                 this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
             }
         } catch (Exception e) {

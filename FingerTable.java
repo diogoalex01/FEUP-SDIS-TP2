@@ -1,7 +1,6 @@
 import java.math.BigInteger;
 import java.util.ArrayList;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
@@ -10,9 +9,10 @@ public class FingerTable {
     private int numOfEntries;
     // private String localAddress = "127.0.0.1";
 
-    public FingerTable(int numOfEntries) {
+    public FingerTable(int numOfEntries, OutsidePeer outsidePeer) {
         table = new ArrayList<>();
         this.numOfEntries = numOfEntries;
+        table.forEach(value -> value = outsidePeer);
     }
 
     public int getSize() {
@@ -28,7 +28,11 @@ public class FingerTable {
     }
 
     public void add(OutsidePeer outsidePeer, int index) throws UnknownHostException {
-        table.add(index, outsidePeer);
+        if (table.size() > index) {
+            table.set(index, outsidePeer);
+        } else {
+            table.add(index, outsidePeer);
+        }
     }
 
     public synchronized void updateFingers(InetSocketAddress inetSocketAddress, int index) {
@@ -63,5 +67,15 @@ public class FingerTable {
         }
 
         return receiverPeer;
+    }
+
+    public void setAllEntries(OutsidePeer outsidePeer) {
+        table.forEach(value -> value = outsidePeer);
+    }
+
+    public void print() {
+        for (int i = 0; i < table.size(); i++) {
+            System.out.println("| " + i + " | " + table.get(i).getId() + " |");
+        }
     }
 }

@@ -19,30 +19,74 @@ class RequestHandler implements Runnable {
         protocolHandler = new ProtocolHandler(peer);
     }
 
-    private String findSuccessor(String[] request) throws UnknownHostException, IOException {
-        String response = new String();
-        System.out.println("parse find successor");
-
-        // SUCCESSOR <file_key> <ip_address> <port>
+    private void findSuccessor(String[] request) throws UnknownHostException, IOException {
+        OutsidePeer newPeer = new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3])));
+        // FINDSUCCESSOR <peer_key> <ip_address> <port>
+        // Second peer to join
         if (this.peer.getSuccessor() == null) {
+            System.out.println("if do null");
+            this.peer.setSuccessor(newPeer);
+            this.peer.setPredecessor(newPeer);
+            this.peer.getFingerTable().add(this.peer.getSuccessor(), 0);
+
+            Messenger.sendUpdatePosition(this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
+                    this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
+                    newPeer.getInetSocketAddress());
+
+            // New peer is between him and his successor
+        } else if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getId(), this.peer.getSuccessor().getId())) {
+            System.out.println("if do middle");
             this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3]))));
-            response = "OK " + this.peer.getAddress().getHostString() + " " + this.peer.getAddress().getPort() + "\n";
-        } else if (this.peer.getSuccessor().middlePeer(new BigInteger(request[1]), this.peer.getId())) {
-            System.out.println("--3");
-            response = this.peer.getSuccessor().getId() + " ";
-            response += this.peer.getSuccessor().getInetSocketAddress().getHostString() + " ";
-            response += this.peer.getSuccessor().getInetSocketAddress().getPort() + "\n";
-            System.out.println("--3.1");
+            this.peer.getFingerTable().add(this.peer.getSuccessor(), 0);
+
+            Messenger.sendUpdatePosition(this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
+                    this.peer.getSuccessor().getInetSocketAddress().getAddress().getHostAddress(),
+                    this.peer.getSuccessor().getInetSocketAddress().getPort(), newPeer.getInetSocketAddress());
+
+            // The new peer position isn't known
         } else {
-            System.out.println("--4");
-            OutsidePeer newSuccessor = this.peer.getSuccessor().findSuccessor(new BigInteger(request[1]));
-            response = newSuccessor.getId() + " ";
-            response += newSuccessor.getInetSocketAddress().getHostString() + " ";
-            response += newSuccessor.getInetSocketAddress().getPort() + "\n";
-            System.out.println("--5");
+            System.out.println("if do forward");
+            Messenger.sendFindSuccessor(new BigInteger(request[1]), request[2], Integer.parseInt(request[3]),
+                    this.peer.getSuccessor().getInetSocketAddress());
         }
-        System.out.println(response);
-        return response;
+    }
+
+    private void updatePredecessor(String[] request) throws UnknownHostException, IOException {
+        // UPDATEPREDECESSOR <ip_predecessor> <port_predecessor>
+        this.peer.setPredecessor(new OutsidePeer(new InetSocketAddress(request[1], Integer.parseInt(request[2]))));
+    }
+
+    private void updatePosition(String[] request) throws UnknownHostException, IOException {
+        // UPDATEPREDECESSOR <ip_predecessor> <port_predecessor>
+        String predecessorIp = request[1];
+        int predecessorPort = Integer.parseInt(request[2]);
+        String successorIp = request[3];
+        int successorPort = Integer.parseInt(request[4]);
+        System.out.println("Recebi mensagem");
+        this.peer.setPredecessor(new OutsidePeer(new InetSocketAddress(predecessorIp, predecessorPort)));
+        this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(successorIp, successorPort)));
+        this.peer.getSuccessor().notifySuccessor(this.peer.getAddress());
+        System.out.println("Successor id: " + this.peer.getSuccessor().getId());
+        System.out.println("predecessor id: " + this.peer.getPredecessor().getId());
+    }
+
+    private void getFinger(String[] request) {
+        // "MARCO " + key + " " + ipAddress.getHostName() + " " + ipAddress.getPort() +
+        // " " + index;
+        if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getPredecessor().getId(), this.peer.getId())
+                || this.peer.getId().compareTo(new BigInteger(request[1])) == 0) {
+            Messenger.sendUpdateFinger(new InetSocketAddress(request[2], Integer.parseInt(request[3])),
+                    this.peer.getAddress(), Integer.parseInt(request[4]));
+        } else {
+            Messenger.sendFindFinger(new InetSocketAddress(request[2], Integer.parseInt(request[3])),
+                    this.peer.getSuccessor().getInetSocketAddress(), Integer.parseInt(request[1]),
+                    new BigInteger(request[4]));
+        }
+    }
+
+    private void updateFinger(String[] request) {
+        this.peer.getFingerTable().updateFingers(new InetSocketAddress(request[1], Integer.parseInt(request[2])),
+                Integer.parseInt(request[3]));
     }
 
     @Override
@@ -52,11 +96,26 @@ class RequestHandler implements Runnable {
             BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
             String[] request = in.readLine().split(" ");
             String response = "";
-            System.out.println(request[0]);
+            System.out.println("received: " + request[0] + " " + request[1] + " " + request[3]);
 
             switch (request[0]) {
-                case "SUCCESSOR":
-                    response = findSuccessor(request);
+                case "FINDSUCCESSOR":
+                    findSuccessor(request);
+                    break;
+                case "UPDATEPOSITION":
+                    updatePosition(request);
+                    break;
+                case "UPDATEPREDECESSOR":
+                    updatePredecessor(request);
+                    break;
+                case "MARCO":
+                    getFinger(request);
+                    break;
+                case "UPDATEFINGER":
+                    updateFinger(request);
+                    break;
+                case "FORWARD":
+                    // response = forwardHandler(request);
                     break;
                 case "BACKUP":
                     response = protocolHandler.backupHandler(request);
@@ -68,15 +127,12 @@ class RequestHandler implements Runnable {
                     response = protocolHandler.deleteHandler(request);
                     break;
                 case "RECLAIM":
-                     //response = protocolHandler.reclaimHandler(request);
+                    // response = protocolHandler.reclaimHandler(request);
                     break;
                 case "GIVECHUNK":
                     response = protocolHandler.GiveChunkHandler(request);
-                   break;
+                    break;
             }
-
-            System.out.println(response);
-            out.writeBytes(response);
 
             in.close();
             out.close();

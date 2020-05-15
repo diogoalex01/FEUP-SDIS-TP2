@@ -1,3 +1,6 @@
+import java.math.BigInteger;
+import java.net.InetSocketAddress;
+
 public class FingerFixer implements Runnable {
     private Peer peer;
 
@@ -7,20 +10,23 @@ public class FingerFixer implements Runnable {
 
     @Override
     public void run() {
+        System.out.println("Fixing fingers...");
         OutsidePeer outsidePeer = null;
         try {
-            System.out.println("SIZE:" + this.peer.getFingerTable().getSize());
-            for (int i = 0; i < this.peer.getFingerTable().getSize(); i++) {
+            System.out.println("SIZE:" + peer.getFingerTable().getSize());
+            for (int i = 0; i < peer.getFingerTable().getSize(); i++) {
                 System.out.println(i);
+                // outsidePeer = peer.getSuccessor().findFinger(
+                // peer.getFingerTable().calculateFinger(peer.getId(), i), peer.getAddress());
+                // if (outsidePeer != null)
+                // peer.getFingerTable().updateFingers(outsidePeer.getInetSocketAddress(), i);
 
-                outsidePeer = this.peer.getSuccessor()
-                        .findSuccessor(this.peer.getFingerTable().calculateFinger(this.peer.getId(), i));
-                System.out.println("111");
-                if (outsidePeer != null)
-                    this.peer.getFingerTable().updateFingers(outsidePeer.getInetSocketAddress(), i);
-
-                System.out.println("222");
+                // TODO: por num thread com timeout e tratar timeout
+                BigInteger key = peer.getFingerTable().calculateFinger(peer.getId(), i);
+                InetSocketAddress entryAddress = peer.getSuccessor().getInetSocketAddress();
+                Messenger.sendFindFinger(peer.getAddress(), entryAddress, i, key);
             }
+            this.peer.getFingerTable().print();
         } catch (Exception e) {
             e.printStackTrace();
         }

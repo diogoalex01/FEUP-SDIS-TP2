@@ -29,29 +29,65 @@ public class OutsidePeer {
         return inetSocketAddress;
     }
 
-    public OutsidePeer findSuccessor(BigInteger id) throws UnknownHostException, IOException {
+    public void findFinger(BigInteger peerKey, InetSocketAddress peerInetSocketAddress)
+            throws UnknownHostException, IOException {
         SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(inetSocketAddress.getAddress().getHostAddress(),
                 inetSocketAddress.getPort());
 
-        // SUCCESSOR <file_key> <ip_address> <port>
-        String message = "SUCCESSOR " + id + " " + inetSocketAddress.getAddress().getHostAddress() + " "
-                + inetSocketAddress.getPort() + "\n";
+        // SUCCESSOR <peer_key> <ip_address> <port>
+        String message = "FINDSUCCESSOR " + peerKey + " " + peerInetSocketAddress.getAddress().getHostAddress() + " "
+                + peerInetSocketAddress.getPort() + "\n";
 
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-        System.out.println(message);
+        System.out.println("out-findsuc sent: " + message);
         out.writeBytes(message);
         String response = in.readLine();
         in.close();
         out.close();
         sslSocket.close();
-        System.out.println(response);
         String[] splitMessage = response.split(" ");
         InetAddress inetAddress = InetAddress.getByName(splitMessage[1]);
         InetSocketAddress socketAddress = new InetSocketAddress(inetAddress, Integer.parseInt(splitMessage[2]));
+    }
+
+    public void findSuccessor(BigInteger peerKey, InetSocketAddress peerInetSocketAddress)
+            throws UnknownHostException, IOException {
+        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(inetSocketAddress.getAddress().getHostAddress(),
+                inetSocketAddress.getPort());
         
-        return new OutsidePeer(socketAddress);
+
+        // SUCCESSOR <peer_key> <ip_address> <port>
+        String message = "FINDSUCCESSOR " + peerKey + " " + peerInetSocketAddress.getAddress().getHostAddress() + " "
+                + peerInetSocketAddress.getPort() + "\n";
+
+        DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
+        // BufferedReader in = new BufferedReader(new
+        // InputStreamReader(sslSocket.getInputStream()));
+        System.out.println("out-findsuc sent: " + message);
+        out.writeBytes(message);
+        // String response = in.readLine();
+        // in.close();
+        out.close();
+        sslSocket.close();
+        // String[] splitMessage = response.split(" ");
+        // InetAddress inetAddress = InetAddress.getByName(splitMessage[1]);
+        // InetSocketAddress socketAddress = new InetSocketAddress(inetAddress,
+        // Integer.parseInt(splitMessage[2]));
+
+        // return new OutsidePeer(socketAddress);
+    }
+
+    public void notifySuccessor(InetSocketAddress socketAddress) throws UnknownHostException, IOException {
+        // SUCCESSOR <file_key> <ip_address> <port>
+        String message = "UPDATEPREDECESSOR " + socketAddress.getAddress().getHostAddress() + " "
+                + socketAddress.getPort() + "\n";
+
+        Messenger.sendMessage(message, socketAddress);
+    
+        System.out.println("out-response received: ");    
     }
 
     public void forwardBackupMessage(String[] string) throws UnknownHostException, IOException {
@@ -62,15 +98,10 @@ public class OutsidePeer {
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
 
-        String str = Arrays.toString(string);
-        out.writeBytes(str);
+        out.writeBytes(Arrays.toString(string));
         String response = in.readLine();
         in.close();
         out.close();
         sslSocket.close();
-    }
-
-    public boolean middlePeer(BigInteger leftBoundary, BigInteger actual) {
-        return (this.id.compareTo(leftBoundary) == -1) && (actual.compareTo(leftBoundary) == 1);
     }
 }

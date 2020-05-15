@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.net.DatagramSocket;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -12,8 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -21,6 +19,7 @@ public class Peer implements RmiRemote {
     private BigInteger id;
     private InetSocketAddress address;
     private int port;
+    private OutsidePeer predecessor;
     private OutsidePeer successor;
     private FingerTable fingerTable;
     private RequestListener listener;
@@ -28,7 +27,6 @@ public class Peer implements RmiRemote {
     private static String storageDirPath;
     private static String backupDirPath;
     private static String restoreDirPath;
-    private final int numberOfNodes = 8;
     private static Storage storage = new Storage();
 
     // private FixFingers checkFingers;
@@ -47,19 +45,19 @@ public class Peer implements RmiRemote {
         // }
 
         ipAddress = address;
+        this.id = Helper.getPeerId(ipAddress, port); // chord.hashSocketAddress(address);
         this.port = port;
         this.listener = new RequestListener(this);
         executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(150);
         executor.execute(this.listener);
         this.stabilizer = new Stabilizer(this);
-        executor.scheduleAtFixedRate(stabilizer, 10, 10, TimeUnit.SECONDS);
+        executor.scheduleAtFixedRate(stabilizer, 5, 5, TimeUnit.SECONDS);
 
         // Initialize finger table
-        fingerTable = new FingerTable(numberOfNodes);
+        fingerTable = new FingerTable(Helper.getNumberOfNodes(), new OutsidePeer(new InetSocketAddress(address, port)));
 
         InetAddress inetAddress = InetAddress.getByName(ipAddress);
         this.address = new InetSocketAddress(inetAddress, port);
-        this.id = Helper.getPeerId(ipAddress, port).mod(new BigInteger("2").pow(this.fingerTable.getSize())); // chord.hashSocketAddress(address);
 
         storageDirPath = "node" + "_" + this.id;
         backupDirPath = storageDirPath + "/Backup";
@@ -68,8 +66,12 @@ public class Peer implements RmiRemote {
         if (otherPort != -1) {
             InetAddress otherAddress = InetAddress.getByName(otherIpAddress);
             this.successor = new OutsidePeer(new InetSocketAddress(otherAddress, otherPort));
-            this.successor.findSuccessor(this.id);
+            // this.predecessor = this.successor;
+            this.successor.findSuccessor(this.id, this.address);
+            fingerTable.setAllEntries(this.successor);
         }
+
+        System.out.println("peerID: " + this.id);
     }
 
     public ScheduledThreadPoolExecutor getExecutor() {
@@ -98,6 +100,14 @@ public class Peer implements RmiRemote {
 
     public void setSuccessor(OutsidePeer successor) {
         this.successor = successor;
+    }
+
+    public OutsidePeer getPredecessor() {
+        return predecessor;
+    }
+
+    public void setPredecessor(OutsidePeer predecessor) {
+        this.predecessor = predecessor;
     }
 
     public FingerTable getFingerTable() {
@@ -130,10 +140,21 @@ public class Peer implements RmiRemote {
         System.setProperty("javax.net.ssl.trustStorePassword", "qwerty123");
     }
 
+    public void stabilize() {
+        System.out.println("Stabilizing...");
+        //OutsidePeer predecessorPeer = successor.getPredecessor();
+
+        // if (predecessorPeer != null && !id.equals(predecessorPeer.getId())
+        //         && (Helper.middlePeer(predecessorPeer.getId(), id, successor.getId()) || id.equals(successor.getId()))) {
+        //     successor = predecessorPeer;
+        //     fingerTable.add(predecessorPeer, 0);
+        // }
+    }
+
+    // TODO check if its your id
     @Override
     public String backup(String fileName, int replicationDegree) {
         System.out.println("Backup");
-
         // String message = "BACKUP 32 1 127.0.0.1 7000 dfasfsdf\n";
         if (fingerTable.getSize() == 0) {
             System.out.println("There are no peers available");
@@ -246,42 +267,8 @@ public class Peer implements RmiRemote {
         sslSocket.close();
     }
 
-    public static void main(String[] args) {
-        if (args.length != 2 && args.length != 4) {
-            System.out.println(
-                    "\n Usage:\tPeer <network_address> <port_number>\n\tPeer <network_address> <port_number> <network_address> <port_number_peer>");
-            return;
-        }
-
-        String address = args[0];
-        int port = Integer.parseInt(args[1]);
-        Peer server;
-
-        try {
-            if (args.length == 4) {
-                String otherIpAddress = args[2];
-                int otherPort = Integer.parseInt(args[3]);
-                server = new Peer(address, port, otherIpAddress, otherPort);
-                // public Peer(String accessPoint, int port, String otherIpAddress, String
-                // otherPort)
-            } else {
-                server = new Peer(address, port, "0", -1);
-            }
-
-            // RmiRemote stub = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
-            // Registry registry = LocateRegistry.getRegistry();
-            // registry.rebind(accessPoint, stub);
-            // setJSSEProperties();
-            // System.out.println("Server ready");
-
-        } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
-            e.printStackTrace();
-        }
-    }
-
     /**
-     * Stores Class Records to a File
+     * Stores Class Records to a file
      */
     public static void storeFile() {
         try {
@@ -329,5 +316,41 @@ public class Peer implements RmiRemote {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) {
+        if (args.length != 2 && args.length != 4) {
+            System.out.println(
+                    "\n Usage:\tPeer <network_address> <port_number>\n\tPeer <network_address> <port_number> <network_address> <port_number_peer>");
+            return;
+        }
+
+        String address = args[0];
+        int port = Integer.parseInt(args[1]);
+        Peer server;
+
+        try {
+            if (args.length == 4) {
+                String otherIpAddress = args[2];
+                int otherPort = Integer.parseInt(args[3]);
+                server = new Peer(address, port, otherIpAddress, otherPort);
+                // public Peer(String accessPoint, int port, String otherIpAddress, String
+                // otherPort)
+            } else {
+                server = new Peer(address, port, "0", -1);
+            }
+
+            // RmiRemote stub = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
+            // Registry registry = LocateRegistry.getRegistry();
+            // registry.rebind(accessPoint, stub);
+            // setJSSEProperties();
+            // System.out.println("Server ready");
+
+        } catch (Exception e) {
+            System.err.println("Server exception: " + e.toString());
+            e.printStackTrace();
+        }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(Peer::storeFile));
     }
 }
