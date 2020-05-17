@@ -30,6 +30,7 @@ public class Messenger {
         SSLSocket sslSocket = null;
         try {
             sslSocket = sendMessage(message, address);
+            System.out.println("---1");
             sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -44,6 +45,7 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, address);
+            System.out.println("---2");
             sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -52,12 +54,13 @@ public class Messenger {
 
     public static void sendFindFinger(InetSocketAddress ipAddress, InetSocketAddress entryAddress, int index,
             BigInteger key) {
-        String message = "MARCO " + key + " " + ipAddress.getAddress().getHostAddress() + " " + ipAddress.getPort()
-                + " " + index + "\n";
+        String message = "MARCO " + index + " " + ipAddress.getAddress().getHostAddress() + " " + ipAddress.getPort()
+                + " " + key + "\n";
         SSLSocket sslSocket = null;
 
         try {
             sslSocket = sendMessage(message, entryAddress);
+            System.out.println("---3");
             sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -72,7 +75,8 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, destinationIpAddress);
-            sslSocket.close();
+            System.out.println("---4");
+            // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

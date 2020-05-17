@@ -1,5 +1,3 @@
-import java.math.BigInteger;
-
 public class Stabilizer implements Runnable {
 	private Peer peer;
 	private FingerFixer fingerFixer;

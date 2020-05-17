@@ -54,6 +54,18 @@ class RequestHandler implements Runnable {
         this.peer.setPredecessor(new OutsidePeer(new InetSocketAddress(request[1], Integer.parseInt(request[2]))));
     }
 
+    public String sendPredecessor(String[] request) throws UnknownHostException, IOException {
+        String message = "PREDECESSOR "
+                + this.peer.getPredecessor().getInetSocketAddress().getAddress().getHostAddress() + " "
+                + this.peer.getPredecessor().getInetSocketAddress().getPort() + "\n";
+        System.out.println("x" + message);
+        // InetSocketAddress socket = new InetSocketAddress(request[1],
+        // Integer.parseInt(request[2]));
+        // SSLSocket sslSocketPre = Messenger.sendMessage(message, socket);
+        // sslSocketPre.close();
+        return message;
+    }
+
     private void updatePosition(String[] request) throws UnknownHostException, IOException {
         // UPDATEPREDECESSOR <ip_predecessor> <port_predecessor>
         String predecessorIp = request[1];
@@ -69,12 +81,12 @@ class RequestHandler implements Runnable {
     }
 
     private void getFinger(String[] request) {
-        // "MARCO " + key + " " + ipAddress.getHostName() + " " + ipAddress.getPort() +
-        // " " + index;
-        if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getPredecessor().getId(), this.peer.getId())
-                || this.peer.getId().compareTo(new BigInteger(request[1])) == 0) {
-            Messenger.sendUpdateFinger(new InetSocketAddress(request[2], Integer.parseInt(request[3])),
-                    this.peer.getAddress(), Integer.parseInt(request[4]));
+        // "MARCO " + index + " " + ipAddress.getHostName() + " " + ipAddress.getPort()
+        // + " " + key;
+        if (Helper.middlePeer(new BigInteger(request[4]), this.peer.getPredecessor().getId(), this.peer.getId())
+                || this.peer.getId().compareTo(new BigInteger(request[4])) == 0) {
+            Messenger.sendUpdateFinger(this.peer.getAddress(),
+                    new InetSocketAddress(request[2], Integer.parseInt(request[3])), Integer.parseInt(request[1]));
         } else {
             Messenger.sendFindFinger(new InetSocketAddress(request[2], Integer.parseInt(request[3])),
                     this.peer.getSuccessor().getInetSocketAddress(), Integer.parseInt(request[1]),
@@ -91,11 +103,20 @@ class RequestHandler implements Runnable {
     public void run() {
         try {
             DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
-            BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-            String[] request = in.readLine().split(" ");
-            in.close();
-            out.close();
-            sslSocket.close();
+            BufferedReader in = null;
+
+            String responseMess = null;
+            while (responseMess == null) {
+                in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+                if (sslSocket.isClosed() || in == null || sslSocket == null)
+                    continue;
+                responseMess = in.readLine();
+                System.out.println("Reading...." + responseMess + " " + sslSocket.isClosed());
+                in.close();
+            }
+
+            String[] request = responseMess.split(" ");
+
             String response = "";
             // System.out.println("received: " + request[0] + " " + request[1] + " " +
             // request[3]);
@@ -110,6 +131,11 @@ class RequestHandler implements Runnable {
                 case "UPDATEPREDECESSOR":
                     System.out.println("RECEBI DO PRED\n");
                     updatePredecessor(request);
+                    break;
+                case "FINDPREDECESSOR":
+                    System.out.println("RECEBI DO PRED2\n");
+                    response = sendPredecessor(request);
+                    out.writeBytes(response);
                     break;
                 case "MARCO":
                     getFinger(request);
@@ -138,6 +164,10 @@ class RequestHandler implements Runnable {
                 default:
                     System.out.println(request[0]);
             }
+            // in.close();
+            out.close();
+            System.out.println("---10");
+            sslSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

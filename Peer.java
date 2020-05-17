@@ -1,4 +1,7 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.math.BigInteger;
 
 import java.util.concurrent.Executors;
@@ -8,12 +11,12 @@ import java.util.concurrent.TimeUnit;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
 public class Peer implements RmiRemote {
     private BigInteger id;
@@ -140,22 +143,22 @@ public class Peer implements RmiRemote {
         System.setProperty("javax.net.ssl.trustStorePassword", "qwerty123");
     }
 
-    public void stabilize() {
+    public void stabilize() throws IOException {
         System.out.println("Stabilizing...");
-        //OutsidePeer predecessorPeer = successor.getPredecessor();
+        OutsidePeer predecessorPeer = successor.getPredecessor(address);
 
-        // if (predecessorPeer != null && !id.equals(predecessorPeer.getId())
-        //         && (Helper.middlePeer(predecessorPeer.getId(), id, successor.getId()) || id.equals(successor.getId()))) {
-        //     successor = predecessorPeer;
-        //     fingerTable.add(predecessorPeer, 0);
-        // }
+        if (predecessorPeer != null && !id.equals(predecessorPeer.getId())
+                && (Helper.middlePeer(predecessorPeer.getId(), id, successor.getId())
+                        || id.equals(successor.getId()))) {
+            successor = predecessorPeer;
+            fingerTable.add(predecessorPeer, 0);
+        }
     }
 
     // TODO check if its your id
     @Override
     public String backup(String fileName, int replicationDegree) {
         System.out.println("Backup");
-        // String message = "BACKUP 32 1 127.0.0.1 7000 dfasfsdf\n";
         if (fingerTable.getSize() == 0) {
             System.out.println("There are no peers available");
             return "ERROR";
@@ -264,6 +267,7 @@ public class Peer implements RmiRemote {
         String response = in.readLine();
         in.close();
         out.close();
+        System.out.println("---9");
         sslSocket.close();
     }
 
@@ -319,20 +323,20 @@ public class Peer implements RmiRemote {
     }
 
     public static void main(String[] args) {
-        if (args.length != 2 && args.length != 4) {
+        if (args.length != 3 && args.length != 5) {
             System.out.println(
-                    "\n Usage:\tPeer <network_address> <port_number>\n\tPeer <network_address> <port_number> <network_address> <port_number_peer>");
+                    "Usage:\tPeer <rmi_accesspoint> <network_address> <port_number>\n\tPeer <network_address> <port_number> <network_address> <port_number_peer>");
             return;
         }
-
-        String address = args[0];
-        int port = Integer.parseInt(args[1]);
+        String accessPoint = args[0];
+        String address = args[1];
+        int port = Integer.parseInt(args[2]);
         Peer server;
 
         try {
-            if (args.length == 4) {
-                String otherIpAddress = args[2];
-                int otherPort = Integer.parseInt(args[3]);
+            if (args.length == 5) {
+                String otherIpAddress = args[3];
+                int otherPort = Integer.parseInt(args[4]);
                 server = new Peer(address, port, otherIpAddress, otherPort);
                 // public Peer(String accessPoint, int port, String otherIpAddress, String
                 // otherPort)
@@ -340,12 +344,10 @@ public class Peer implements RmiRemote {
                 server = new Peer(address, port, "0", -1);
             }
 
-            // RmiRemote stub = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
-            // Registry registry = LocateRegistry.getRegistry();
-            // registry.rebind(accessPoint, stub);
-            // setJSSEProperties();
-            // System.out.println("Server ready");
-
+            RmiRemote rmiRemote = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
+            Registry registry = LocateRegistry.getRegistry();
+            registry.rebind(accessPoint, rmiRemote);
+            System.out.println("Server ready");
         } catch (Exception e) {
             System.err.println("Server exception: " + e.toString());
             e.printStackTrace();
