@@ -1,14 +1,12 @@
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
-
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -29,35 +27,11 @@ public class OutsidePeer {
         return inetSocketAddress;
     }
 
-    public void findFinger(BigInteger peerKey, InetSocketAddress peerInetSocketAddress)
-            throws UnknownHostException, IOException {
-        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(inetSocketAddress.getAddress().getHostAddress(),
-                inetSocketAddress.getPort());
-
-        // SUCCESSOR <peer_key> <ip_address> <port>
-        String message = "FINDSUCCESSOR " + peerKey + " " + peerInetSocketAddress.getAddress().getHostAddress() + " "
-                + peerInetSocketAddress.getPort() + "\n";
-
-        DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
-        BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-        System.out.println("out-findsuc sent: " + message);
-        out.writeBytes(message);
-        String response = in.readLine();
-        in.close();
-        out.close();
-        sslSocket.close();
-        String[] splitMessage = response.split(" ");
-        InetAddress inetAddress = InetAddress.getByName(splitMessage[1]);
-        InetSocketAddress socketAddress = new InetSocketAddress(inetAddress, Integer.parseInt(splitMessage[2]));
-    }
-
     public void findSuccessor(BigInteger peerKey, InetSocketAddress peerInetSocketAddress)
             throws UnknownHostException, IOException {
         SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(inetSocketAddress.getAddress().getHostAddress(),
                 inetSocketAddress.getPort());
-        
 
         // SUCCESSOR <peer_key> <ip_address> <port>
         String message = "FINDSUCCESSOR " + peerKey + " " + peerInetSocketAddress.getAddress().getHostAddress() + " "
@@ -80,14 +54,15 @@ public class OutsidePeer {
         // return new OutsidePeer(socketAddress);
     }
 
-    public void notifySuccessor(InetSocketAddress socketAddress) throws UnknownHostException, IOException {
+    public void notifySuccessor(InetSocketAddress peerSocketAddress, InetSocketAddress successorSocketAddress)
+            throws UnknownHostException, IOException {
         // SUCCESSOR <file_key> <ip_address> <port>
-        String message = "UPDATEPREDECESSOR " + socketAddress.getAddress().getHostAddress() + " "
-                + socketAddress.getPort() + "\n";
-
-        Messenger.sendMessage(message, socketAddress);
-    
-        System.out.println("out-response received: ");    
+        String message = "UPDATEPREDECESSOR " + peerSocketAddress.getAddress().getHostAddress() + " "
+                + peerSocketAddress.getPort() + "\n";
+        Messenger.sendMessage(message, successorSocketAddress);
+        System.out.println("sent suc. message: " + successorSocketAddress.getAddress().getHostAddress() + " "
+                + successorSocketAddress.getPort());
+        System.out.println("successor message " + message);
     }
 
     public void forwardBackupMessage(String[] string) throws UnknownHostException, IOException {

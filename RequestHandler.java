@@ -32,19 +32,17 @@ class RequestHandler implements Runnable {
             Messenger.sendUpdatePosition(this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
                     this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
                     newPeer.getInetSocketAddress());
-
-            // New peer is between him and his successor
-        } else if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getId(), this.peer.getSuccessor().getId())) {
+        }
+        // New peer is between him and his successor
+        else if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getId(), this.peer.getSuccessor().getId())) {
             System.out.println("if do middle");
-            this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3]))));
-            this.peer.getFingerTable().add(this.peer.getSuccessor(), 0);
-
             Messenger.sendUpdatePosition(this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
                     this.peer.getSuccessor().getInetSocketAddress().getAddress().getHostAddress(),
                     this.peer.getSuccessor().getInetSocketAddress().getPort(), newPeer.getInetSocketAddress());
-
-            // The new peer position isn't known
-        } else {
+            this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3]))));
+        }
+        // The position of the new peer isn't known
+        else {
             System.out.println("if do forward");
             Messenger.sendFindSuccessor(new BigInteger(request[1]), request[2], Integer.parseInt(request[3]),
                     this.peer.getSuccessor().getInetSocketAddress());
@@ -62,10 +60,10 @@ class RequestHandler implements Runnable {
         int predecessorPort = Integer.parseInt(request[2]);
         String successorIp = request[3];
         int successorPort = Integer.parseInt(request[4]);
-        System.out.println("Recebi mensagem");
         this.peer.setPredecessor(new OutsidePeer(new InetSocketAddress(predecessorIp, predecessorPort)));
         this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(successorIp, successorPort)));
-        this.peer.getSuccessor().notifySuccessor(this.peer.getAddress());
+        this.peer.getSuccessor().notifySuccessor(this.peer.getAddress(),
+                this.peer.getSuccessor().getInetSocketAddress());
         System.out.println("Successor id: " + this.peer.getSuccessor().getId());
         System.out.println("predecessor id: " + this.peer.getPredecessor().getId());
     }
@@ -95,8 +93,12 @@ class RequestHandler implements Runnable {
             DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
             String[] request = in.readLine().split(" ");
+            in.close();
+            out.close();
+            sslSocket.close();
             String response = "";
-            System.out.println("received: " + request[0] + " " + request[1] + " " + request[3]);
+            // System.out.println("received: " + request[0] + " " + request[1] + " " +
+            // request[3]);
 
             switch (request[0]) {
                 case "FINDSUCCESSOR":
@@ -106,6 +108,7 @@ class RequestHandler implements Runnable {
                     updatePosition(request);
                     break;
                 case "UPDATEPREDECESSOR":
+                    System.out.println("RECEBI DO PRED\n");
                     updatePredecessor(request);
                     break;
                 case "MARCO":
@@ -132,11 +135,9 @@ class RequestHandler implements Runnable {
                 case "GIVECHUNK":
                     response = protocolHandler.GiveChunkHandler(request);
                     break;
+                default:
+                    System.out.println(request[0]);
             }
-
-            in.close();
-            out.close();
-            sslSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

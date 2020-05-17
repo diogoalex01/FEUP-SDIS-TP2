@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
@@ -33,18 +32,15 @@ public class ProtocolHandler {
             try {
                 this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
 
         } else {
-
             // FORWARD <file_key> <rep_degree> <body>
             String message = "FORWARD " + fileKey + " " + replicationDegree + " " + body + "\n";
             try {
                 this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -84,7 +80,6 @@ public class ProtocolHandler {
             replicationDegree--;
 
             if (replicationDegree > 1) {
-
                 OutsidePeer outsidePeer = this.peer.getSuccessor();
                 String message = "BACKUP " + fileKey + " " + replicationDegree + " " + body + "\n";
                 this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
@@ -114,7 +109,7 @@ public class ProtocolHandler {
                 e.printStackTrace();
             }
 
-            String message = "GIVECHUNK " + fileKey + body;
+            String message = "GIVECHUNK " + fileKey + body + "\n";
             InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
             try {
                 this.peer.sendMessage(message, inetSocketAddress);
@@ -186,7 +181,7 @@ public class ProtocolHandler {
         String folderDirectory = this.peer.getRestoreDirPath();
         String fileDirectory = this.peer.getRestoreDirPath() + "/" + fileKey;
 
-        System.out.println("SAVING File...");
+        System.out.println("SAVING file...");
         try {
             final Path filePath = Paths.get(folderDirectory);
 

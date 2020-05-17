@@ -53,7 +53,7 @@ public class FingerTable {
 
         for (int i = 1; i < table.size(); i++) {
             BigInteger peerId = table.get(i).getId();
-
+            
             if (peerId.compareTo(fileId) == -1 || peerId.compareTo(fileId) == 0) {
                 if (peerId.compareTo(fileId) == 0) {
                     receiverPeer = table.get(i);

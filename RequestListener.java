@@ -25,13 +25,15 @@ class RequestListener implements Runnable {
         while (true) {
             SSLSocket sslSocket;
             System.out.println("listining");
-            
-            try {
-                sslSocket = (SSLSocket) sslServerSocket.accept();
-                peer.getExecutor().execute(new RequestHandler(peer, sslSocket));
-            } catch (IOException e) {
-                e.printStackTrace();
+            synchronized (this) {
+                try {
+                    sslSocket = (SSLSocket) sslServerSocket.accept();
+                    peer.getExecutor().execute(new RequestHandler(peer, sslSocket));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+
         }
     }
 }

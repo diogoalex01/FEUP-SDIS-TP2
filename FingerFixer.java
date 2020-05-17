@@ -1,6 +1,8 @@
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 
+import javax.net.ssl.SSLSocket;
+
 public class FingerFixer implements Runnable {
     private Peer peer;
 
@@ -11,15 +13,15 @@ public class FingerFixer implements Runnable {
     @Override
     public void run() {
         System.out.println("Fixing fingers...");
-        OutsidePeer outsidePeer = null;
+        // OutsidePeer outsidePeer = null;
         try {
             System.out.println("SIZE:" + peer.getFingerTable().getSize());
             for (int i = 0; i < peer.getFingerTable().getSize(); i++) {
                 System.out.println(i);
                 // outsidePeer = peer.getSuccessor().findFinger(
                 // peer.getFingerTable().calculateFinger(peer.getId(), i), peer.getAddress());
-                // if (outsidePeer != null)
-                // peer.getFingerTable().updateFingers(outsidePeer.getInetSocketAddress(), i);
+                if (peer.getSuccessor() == null)
+                    continue;
 
                 // TODO: por num thread com timeout e tratar timeout
                 BigInteger key = peer.getFingerTable().calculateFinger(peer.getId(), i);
