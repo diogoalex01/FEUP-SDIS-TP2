@@ -12,7 +12,10 @@ public class FingerTable {
     public FingerTable(int numOfEntries, OutsidePeer outsidePeer) {
         table = new ArrayList<>();
         this.numOfEntries = numOfEntries;
-        table.forEach(value -> value = outsidePeer);
+        for (int i = 0; i < numOfEntries; i++) {
+            table.add(outsidePeer);
+        }
+        print();
     }
 
     public int getSize() {
@@ -27,21 +30,13 @@ public class FingerTable {
         return table.isEmpty();
     }
 
-    public void add(OutsidePeer outsidePeer, int index) throws UnknownHostException {
-        if (table.size() > index) {
-            table.set(index, outsidePeer);
-        } else {
-            table.add(index, outsidePeer);
-        }
+    public void add(OutsidePeer outsidePeer, int index) {
+        table.set(index, outsidePeer);
     }
 
-    public synchronized void updateFingers(InetSocketAddress inetSocketAddress, int index) {
+    public void updateFingers(InetSocketAddress inetSocketAddress, int index) {
         OutsidePeer outsidePeer = new OutsidePeer(inetSocketAddress);
-        try {
-            add(outsidePeer, index);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+        table.set(index, outsidePeer);
     }
 
     public BigInteger calculateFinger(BigInteger peerID, int i) {
@@ -53,7 +48,7 @@ public class FingerTable {
 
         for (int i = 1; i < table.size(); i++) {
             BigInteger peerId = table.get(i).getId();
-            
+
             if (peerId.compareTo(fileId) == -1 || peerId.compareTo(fileId) == 0) {
                 if (peerId.compareTo(fileId) == 0) {
                     receiverPeer = table.get(i);

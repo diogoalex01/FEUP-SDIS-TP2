@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -145,13 +146,15 @@ public class Peer implements RmiRemote {
 
     public void stabilize() throws IOException {
         System.out.println("Stabilizing...");
-        OutsidePeer predecessorPeer = successor.getPredecessor(address);
+        if (successor != null) {
+            OutsidePeer predecessorPeer = successor.getPredecessor(address);
 
-        if (predecessorPeer != null && !id.equals(predecessorPeer.getId())
-                && (Helper.middlePeer(predecessorPeer.getId(), id, successor.getId())
-                        || id.equals(successor.getId()))) {
-            successor = predecessorPeer;
-            fingerTable.add(predecessorPeer, 0);
+            if (predecessorPeer != null && !id.equals(predecessorPeer.getId())
+                    && (Helper.middlePeer(predecessorPeer.getId(), id, successor.getId())
+                            || id.equals(successor.getId()))) {
+                successor = predecessorPeer;
+                fingerTable.add(predecessorPeer, 0);
+            }
         }
     }
 
@@ -177,19 +180,27 @@ public class Peer implements RmiRemote {
             e.printStackTrace();
         }
 
-        String message = " ";
+        String message = "";
 
         // FORWARD <file_key> <rep_degree> <InetAddress> <port> <body>
         if (body != null) {
-            if (receiverPeer.getId() == fileId) {
-                message = "BACKUP " + fileId + " " + replicationDegree + " " + body + "\n";
+            // System.out.println("body " + new String(body));
+            if (receiverPeer.getId() == fileId) { // TODO: work in progress
+                message = "BACKUP " + fileId + " " + replicationDegree + " " + body.length + "\n";
             } else {
-                message = "FORWARD " + fileId + " " + replicationDegree + " " + body + "\n";
+                message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
+                System.out.println(message);
             }
+            byte[] messageBytes = message.getBytes(StandardCharsets.ISO_8859_1);
+
+            byte[] c = new byte[messageBytes.length + body.length];
+            System.arraycopy(messageBytes, 0, c, 0, messageBytes.length);
+            System.arraycopy(body, 0, c, messageBytes.length, body.length);
         }
 
         try {
-            sendMessage(message, receiverPeer.getInetSocketAddress());
+            System.out.println("receiver peer " + receiverPeer.getId());
+            sendMessage(message, body, receiverPeer.getInetSocketAddress());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -267,7 +278,25 @@ public class Peer implements RmiRemote {
         String response = in.readLine();
         in.close();
         out.close();
-        System.out.println("---9");
+        // System.out.println("---9");
+        sslSocket.close();
+    }
+
+    public void sendMessage(String message,byte[] body, InetSocketAddress messageReceiver)
+            throws UnknownHostException, IOException {
+        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(messageReceiver.getAddress().getHostAddress(),
+                messageReceiver.getPort());
+
+        DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
+        BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+        System.out.println(message);
+        out.writeBytes(message);
+        out.write(body);
+        String response = in.readLine();
+        in.close();
+        out.close();
+        // System.out.println("---9");
         sslSocket.close();
     }
 

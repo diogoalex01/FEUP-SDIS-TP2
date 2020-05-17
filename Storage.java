@@ -76,5 +76,4 @@ public class Storage implements Serializable{
     public void addStoredFile(BigInteger fileId) {
         this.myStoredFiles.add(fileId);
     }
-
 }

@@ -24,7 +24,7 @@ class RequestHandler implements Runnable {
         // FINDSUCCESSOR <peer_key> <ip_address> <port>
         // Second peer to join
         if (this.peer.getSuccessor() == null) {
-            System.out.println("if do null");
+            // System.out.println("if do null");
             this.peer.setSuccessor(newPeer);
             this.peer.setPredecessor(newPeer);
             this.peer.getFingerTable().add(this.peer.getSuccessor(), 0);
@@ -35,7 +35,7 @@ class RequestHandler implements Runnable {
         }
         // New peer is between him and his successor
         else if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getId(), this.peer.getSuccessor().getId())) {
-            System.out.println("if do middle");
+            // System.out.println("if do middle");
             Messenger.sendUpdatePosition(this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
                     this.peer.getSuccessor().getInetSocketAddress().getAddress().getHostAddress(),
                     this.peer.getSuccessor().getInetSocketAddress().getPort(), newPeer.getInetSocketAddress());
@@ -43,7 +43,7 @@ class RequestHandler implements Runnable {
         }
         // The position of the new peer isn't known
         else {
-            System.out.println("if do forward");
+            // System.out.println("if do forward");
             Messenger.sendFindSuccessor(new BigInteger(request[1]), request[2], Integer.parseInt(request[3]),
                     this.peer.getSuccessor().getInetSocketAddress());
         }
@@ -58,7 +58,7 @@ class RequestHandler implements Runnable {
         String message = "PREDECESSOR "
                 + this.peer.getPredecessor().getInetSocketAddress().getAddress().getHostAddress() + " "
                 + this.peer.getPredecessor().getInetSocketAddress().getPort() + "\n";
-        System.out.println("x" + message);
+        // System.out.println("x" + message);
         // InetSocketAddress socket = new InetSocketAddress(request[1],
         // Integer.parseInt(request[2]));
         // SSLSocket sslSocketPre = Messenger.sendMessage(message, socket);
@@ -76,8 +76,8 @@ class RequestHandler implements Runnable {
         this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(successorIp, successorPort)));
         this.peer.getSuccessor().notifySuccessor(this.peer.getAddress(),
                 this.peer.getSuccessor().getInetSocketAddress());
-        System.out.println("Successor id: " + this.peer.getSuccessor().getId());
-        System.out.println("predecessor id: " + this.peer.getPredecessor().getId());
+        // System.out.println("Successor id: " + this.peer.getSuccessor().getId());
+        // System.out.println("predecessor id: " + this.peer.getPredecessor().getId());
     }
 
     private void getFinger(String[] request) {
@@ -106,18 +106,19 @@ class RequestHandler implements Runnable {
             BufferedReader in = null;
 
             String responseMess = null;
-            while (responseMess == null) {
+            // while (responseMess == null) {
                 in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-                if (sslSocket.isClosed() || in == null || sslSocket == null)
-                    continue;
+                // if (sslSocket.isClosed() || in == null || sslSocket == null)
+                //     continue;
                 responseMess = in.readLine();
-                System.out.println("Reading...." + responseMess + " " + sslSocket.isClosed());
-                in.close();
-            }
+                // System.out.println("Reading...." + responseMess + " " +
+                // sslSocket.isClosed());
+            // }
 
             String[] request = responseMess.split(" ");
 
             String response = "";
+            byte[] file;
             // System.out.println("received: " + request[0] + " " + request[1] + " " +
             // request[3]);
 
@@ -129,11 +130,11 @@ class RequestHandler implements Runnable {
                     updatePosition(request);
                     break;
                 case "UPDATEPREDECESSOR":
-                    System.out.println("RECEBI DO PRED\n");
+                    // System.out.println("RECEBI DO PRED\n");
                     updatePredecessor(request);
                     break;
                 case "FINDPREDECESSOR":
-                    System.out.println("RECEBI DO PRED2\n");
+                    // System.out.println("RECEBI DO PRED2\n");
                     response = sendPredecessor(request);
                     out.writeBytes(response);
                     break;
@@ -144,10 +145,15 @@ class RequestHandler implements Runnable {
                     updateFinger(request);
                     break;
                 case "FORWARD":
-                    // response = forwardHandler(request);
+                    file = new byte[Integer.parseInt(request[3])];
+                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[3]));
+                    protocolHandler.forwardHandler(request, file);
+                    // out.writeBytes(response);
                     break;
                 case "BACKUP":
-                    response = protocolHandler.backupHandler(request);
+                    file = new byte[Integer.parseInt(request[3])];
+                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[3]));
+                    response = protocolHandler.backupHandler(request, file);
                     break;
                 case "RESTORE":
                     response = protocolHandler.restoreHandler(request);
@@ -159,14 +165,14 @@ class RequestHandler implements Runnable {
                     // response = protocolHandler.reclaimHandler(request);
                     break;
                 case "GIVECHUNK":
-                    response = protocolHandler.GiveChunkHandler(request);
+                    response = protocolHandler.giveChunkHandler(request);
                     break;
                 default:
                     System.out.println(request[0]);
             }
-            // in.close();
+            in.close();
             out.close();
-            System.out.println("---10");
+            // System.out.println("---10");
             sslSocket.close();
         } catch (IOException e) {
             e.printStackTrace();

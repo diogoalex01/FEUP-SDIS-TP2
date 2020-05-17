@@ -11,9 +11,11 @@ public class Client {
             return;
 
         try {
+            String accessPoint = args[0];
             Registry registry = LocateRegistry.getRegistry();
-            RmiRemote peer = (RmiRemote) registry.lookup(accessPoint);
-            parseArgs(args, peer);
+            RmiRemote remote = (RmiRemote) registry.lookup(accessPoint);
+
+            parseArgs(args, remote);
         } catch (Exception e) {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();
@@ -22,7 +24,7 @@ public class Client {
 
     private static boolean init(String[] args) {
         if (args.length != 3 && args.length != 4) {
-            System.out.println("\n Usage:\tClientInit <peerAccessPoint> <subProtocol> \n");
+            System.out.println("\n Usage:\tClient <peerAccessPoint> <subProtocol> \n");
             System.out.println(" Subprotocols :\t");
             System.out.println(" - BACKUP <fileID> \t");
             System.out.println(" - RESTORE <fileID>\t");
@@ -41,8 +43,8 @@ public class Client {
     private static void parseArgs(String[] args, RmiRemote peer) throws Exception {
         switch (protocol) {
             case "BACKUP":
-                int repDegree = Integer.parseInt(args[3]);
-                peer.backup(filePath, repDegree);
+                // int repDegree = Integer.parseInt(args[3]);
+                peer.backup(filePath, 1);
                 System.out.println("\nBackup finished successfully\n");
                 break;
 

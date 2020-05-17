@@ -9,7 +9,7 @@ public class Stabilizer implements Runnable {
 
 	public void run() {
 		try {
-			System.out.println("stab");
+			// System.out.println("stab");
 			peer.stabilize();
 			if (peer.getSuccessor() != null) {
 				peer.getSuccessor().notifySuccessor(peer.getAddress(), peer.getSuccessor().getInetSocketAddress());

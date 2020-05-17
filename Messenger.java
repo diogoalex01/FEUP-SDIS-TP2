@@ -26,11 +26,11 @@ public class Messenger {
             int successorPort, InetSocketAddress address) {
         String message = "UPDATEPOSITION " + predecessorIp + " " + predecessorPort + " " + successorIp + " "
                 + successorPort + "\n";
-        System.out.println("update position message " + message);
+        // System.out.println("update position message " + message);
         SSLSocket sslSocket = null;
         try {
             sslSocket = sendMessage(message, address);
-            System.out.println("---1");
+            // System.out.println("---1");
             sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -45,7 +45,7 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, address);
-            System.out.println("---2");
+            // System.out.println("---2");
             sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -60,7 +60,7 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, entryAddress);
-            System.out.println("---3");
+            // System.out.println("---3");
             sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -75,7 +75,7 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, destinationIpAddress);
-            System.out.println("---4");
+            // System.out.println("---4");
             // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();

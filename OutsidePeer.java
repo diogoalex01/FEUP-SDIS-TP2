@@ -4,6 +4,7 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -61,11 +62,11 @@ public class OutsidePeer {
         String message = "UPDATEPREDECESSOR " + peerSocketAddress.getAddress().getHostAddress() + " "
                 + peerSocketAddress.getPort() + "\n";
         SSLSocket sslSocket = Messenger.sendMessage(message, successorSocketAddress);
-        System.out.println("---6");
+        // System.out.println("---6");
         sslSocket.close();
         System.out.println("sent suc. message: " + successorSocketAddress.getAddress().getHostAddress() + " "
                 + successorSocketAddress.getPort());
-        System.out.println("successor message " + message);
+        // System.out.println("successor message " + message);
     }
 
     public OutsidePeer getPredecessor(InetSocketAddress peerSocketAddress) throws IOException {
@@ -77,16 +78,12 @@ public class OutsidePeer {
                 inetSocketAddress.getPort());
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-        System.out.println("out-findsuc sent: " + message);
+        //System.out.println("out-findsuc sent: " + message);
         out.writeBytes(message);
-        String response = null;
-        while (response == null) {
-            response = in.readLine();
-        }
-        System.out.println("out-response: " + response);
+        String response = in.readLine();
+        //System.out.println("out-response: " + response);
         in.close();
         out.close();
-        System.out.println("---7");
         sslSocket.close();
         // PREDECESSOR <ip_address> <port>
         String[] splitMessage = response.split(" ");
@@ -107,7 +104,7 @@ public class OutsidePeer {
         String response = in.readLine();
         in.close();
         out.close();
-        System.out.println("---8");
+        // System.out.println("---8");
         sslSocket.close();
     }
 }

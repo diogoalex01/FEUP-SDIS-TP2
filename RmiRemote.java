@@ -1,15 +1,16 @@
 import java.rmi.Remote;
-import java.rmi.RemoteException;
-import javax.net.ssl.SSLSocket;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+
 
 public interface RmiRemote extends Remote {
 
-    String backup(String fileName, int replicationDegree);
+    String backup(String fileName, int replicationDegree) throws IOException, NoSuchAlgorithmException;
 
-    String restore(String fileName);
+    String restore(String fileName) throws IOException, NoSuchAlgorithmException;
 
-    String delete(String fileName);
+    String delete(String fileName) throws IOException, NoSuchAlgorithmException;
 
-    String reclaim(int space);
+    String reclaim(int space) throws IOException, NoSuchAlgorithmException;
 
 }

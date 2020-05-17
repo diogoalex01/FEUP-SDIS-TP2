@@ -18,28 +18,25 @@ public class ProtocolHandler {
         this.peer = peer;
     }
 
-    public String forwardHandler(String[] request) throws UnknownHostException {
+    public String forwardHandler(String[] request, byte[] body) throws UnknownHostException {
         // FORWARD <file_key> <rep_degree> <body>
         BigInteger fileKey = new BigInteger(request[1]);
         int replicationDegree = Integer.parseInt(request[2]);
-        byte[] body = request[3].getBytes(StandardCharsets.UTF_8);
 
         OutsidePeer outsidePeer = this.peer.getSuccessor();
 
         if (Helper.middlePeer(fileKey, peer.getId(), peer.getSuccessor().getId())) {
-
-            String message = "BACKUP " + fileKey + " " + replicationDegree + " " + body + "\n";
+            String message = "BACKUP " + fileKey + " " + replicationDegree + " " + body.length + "\n";
             try {
-                this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
+                this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         } else {
             // FORWARD <file_key> <rep_degree> <body>
-            String message = "FORWARD " + fileKey + " " + replicationDegree + " " + body + "\n";
+            String message = "FORWARD " + fileKey + " " + replicationDegree + " " + body.length + "\n";
             try {
-                this.peer.sendMessage(message, outsidePeer.getInetSocketAddress());
+                this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -48,19 +45,16 @@ public class ProtocolHandler {
         return "OK";
     }
 
-    public String backupHandler(String[] request) {
+    public String backupHandler(String[] request, byte[] body) {
         // BACKUP <file_key> <rep_degree> <body>
         try {
             String fileKey = request[1];
             int replicationDegree = Integer.parseInt(request[2]);
-            byte[] body = request[3].getBytes(StandardCharsets.UTF_8);
-
             // TODO ver se o file foi enviado por mim
             if (replicationDegree < 1 || this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
                 return "OK";
             }
-
-            String fileDirName = this.peer.getBackupDirPath() + "/" + fileKey;
+            String fileDirName = this.peer.getBackupDirPath();
 
             // Store file
             final Path fileDirPath = Paths.get(fileDirName);
@@ -68,16 +62,14 @@ public class ProtocolHandler {
             if (Files.notExists(fileDirPath)) {
                 Files.createDirectories(fileDirPath);
             }
-
-            OutputStream outputStream = new FileOutputStream(fileKey);
+            OutputStream outputStream = new FileOutputStream(fileDirName + "/" + fileKey);
             outputStream.write(body);
             outputStream.close();
-
             for (int i = 0; i < request.length; i++) {
                 System.out.println(request[i]);
             }
-
             replicationDegree--;
+            peer.getStorage().addStoredFile(new BigInteger(fileKey));
 
             if (replicationDegree > 1) {
                 OutsidePeer outsidePeer = this.peer.getSuccessor();
@@ -138,12 +130,11 @@ public class ProtocolHandler {
         if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey)))
             deleteFile(fileKey);
 
-        if (!(ipAddress.equals(this.peer.getAddress().getHostName())) || (this.peer.getPort() != port)) {
+        if (!(ipAddress.equals(this.peer.getAddress().getHostName())) && (this.peer.getPort() != port)) { 
             String message = "DELETE " + fileKey + " " + ipAddress + " " + port + "\n";
             try {
                 this.peer.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -156,10 +147,11 @@ public class ProtocolHandler {
             return;
         }
 
-        File backupDir = new File(this.peer.getBackupDirPath());
+        File storageDir = new File(peer.getStorageDirPath());
+        File backupDir = new File(peer.getBackupDirPath());
         File fileIDDir = new File(backupDir.getPath(), fileId);
 
-        if (fileIDDir.exists()) {
+        if (backupDir.exists()) {
             if (fileIDDir.delete()) {
                 System.out.println("File deleted successfully");
             } else {
@@ -172,9 +164,14 @@ public class ProtocolHandler {
         if (backupDirectory.length == 0) {
             backupDir.delete();
         }
+
+        File[] storageDirectory = storageDir.listFiles();
+        if (storageDirectory.length == 0) {
+            storageDir.delete();
+        }
     }
 
-    public String GiveChunkHandler(String[] request) throws UnknownHostException {
+    public String giveChunkHandler(String[] request) throws UnknownHostException {
         // GIVECHUNK <file_key> <body>
         String fileKey = request[1];
         byte[] body = request[2].getBytes(StandardCharsets.UTF_8);
