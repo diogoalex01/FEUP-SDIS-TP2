@@ -9,26 +9,26 @@ public class Stabilizer implements Runnable {
 
 	public void run() {
 		try {
-			// System.out.println("stab");
-			peer.stabilize();
+			peer.getStorage().print();
 			if (peer.getSuccessor() != null) {
+				if (peer.getSuccessor().testSuccessor()) {
+					if (peer.updateToNextPeer()) {
+						System.out.println("NO NEXT SUCCESSOR");
+						return;
+					}
+				}
+				OutsidePeer newNextPeer = this.peer.getSuccessor().getNextSuccessor();
+				if (newNextPeer.getId().compareTo(this.peer.getId()) == 0) {
+					this.peer.setNextSuccessor(null);
+				} else {
+					this.peer.setNextSuccessor(newNextPeer);
+				}
 				peer.getSuccessor().notifySuccessor(peer.getAddress(), peer.getSuccessor().getInetSocketAddress());
+				peer.stabilize();
+				peer.getExecutor().execute(fingerFixer);
 			}
-			peer.getExecutor().execute(fingerFixer);
-
-			// System.out.print("Predecessor: ");
-			// if (peer.getPredecessor() != null)
-			// 	System.out.print(peer.getPredecessor().getId());
-			// else
-			// 	System.out.print("null");
-
-			// System.out.print(" ID:" + peer.getId() + " Successor: ");
-			// if (peer.getSuccessor() != null)
-			// 	System.out.println(peer.getSuccessor().getId());
-			// else
-			// 	System.out.println("null");
 		} catch (Exception e) {
-			e.printStackTrace();
+
 		}
 	}
 }

@@ -4,9 +4,10 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
-
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -41,12 +42,12 @@ public class OutsidePeer {
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         // BufferedReader in = new BufferedReader(new
         // InputStreamReader(sslSocket.getInputStream()));
-        System.out.println("out-findsuc sent: " + message);
+        // System.out.println("out-findsuc sent: " + message);
         out.writeBytes(message);
         // String response = in.readLine();
         // in.close();
         out.close();
-        System.out.println("---5");
+        // System.out.println("---5");
         sslSocket.close();
         // String[] splitMessage = response.split(" ");
         // InetAddress inetAddress = InetAddress.getByName(splitMessage[1]);
@@ -62,11 +63,31 @@ public class OutsidePeer {
         String message = "UPDATEPREDECESSOR " + peerSocketAddress.getAddress().getHostAddress() + " "
                 + peerSocketAddress.getPort() + "\n";
         SSLSocket sslSocket = Messenger.sendMessage(message, successorSocketAddress);
-        // System.out.println("---6");
         sslSocket.close();
-        System.out.println("sent suc. message: " + successorSocketAddress.getAddress().getHostAddress() + " "
-                + successorSocketAddress.getPort());
-        // System.out.println("successor message " + message);
+    }
+
+    public boolean testSuccessor() {
+        try {
+            SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocket sslSocket = (SSLSocket) sslSocketFactory
+                    .createSocket(inetSocketAddress.getAddress().getHostAddress(), inetSocketAddress.getPort());
+            sslSocket.setSoTimeout(1000);
+            DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
+            BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+            String message = "TEST \n";
+            out.writeBytes(message);
+            return false;
+        } catch (SocketTimeoutException e) {
+            return true;
+        } catch (ConnectException e) {
+            return true;
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return true;
     }
 
     public OutsidePeer getPredecessor(InetSocketAddress peerSocketAddress) throws IOException {
@@ -78,10 +99,8 @@ public class OutsidePeer {
                 inetSocketAddress.getPort());
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-        //System.out.println("out-findsuc sent: " + message);
         out.writeBytes(message);
         String response = in.readLine();
-        //System.out.println("out-response: " + response);
         in.close();
         out.close();
         sslSocket.close();
@@ -106,5 +125,19 @@ public class OutsidePeer {
         out.close();
         // System.out.println("---8");
         sslSocket.close();
+    }
+
+    public OutsidePeer getNextSuccessor() throws UnknownHostException, IOException {
+        SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(inetSocketAddress.getAddress().getHostAddress(),
+                inetSocketAddress.getPort());
+
+        DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
+        BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+
+        String message = "NEXTSUCCESSOR \n";
+        out.writeBytes(message);
+        String[] response = in.readLine().split(" ");
+        return new OutsidePeer(new InetSocketAddress(response[1], Integer.parseInt(response[2])));
     }
 }

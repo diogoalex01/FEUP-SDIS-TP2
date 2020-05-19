@@ -26,10 +26,11 @@ public class Client {
         if (args.length != 3 && args.length != 4) {
             System.out.println("\n Usage:\tClient <peerAccessPoint> <subProtocol> \n");
             System.out.println(" Subprotocols :\t");
-            System.out.println(" - BACKUP <fileID> \t");
-            System.out.println(" - RESTORE <fileID>\t");
-            System.out.println(" - DELETE <fileID>\t");
+            System.out.println(" - BACKUP <file> \t");
+            System.out.println(" - RESTORE <file>\t");
+            System.out.println(" - DELETE <file>\t");
             System.out.println(" - RECLAIM <space>\t");
+            System.out.println(" - STATE\t");
             return false;
         }
 
@@ -44,7 +45,7 @@ public class Client {
         switch (protocol) {
             case "BACKUP":
                 // int repDegree = Integer.parseInt(args[3]);
-                peer.backup(filePath, 1);
+                peer.backup(filePath, 2);
                 System.out.println("\nBackup finished successfully\n");
                 break;
 
@@ -62,6 +63,10 @@ public class Client {
                 int size = Integer.parseInt(args[2]);
                 peer.reclaim(size);
                 System.out.println("\nSpace reclaimed successfully\n");
+                break;
+
+            case "STATE":
+                peer.state();
                 break;
         }
     }

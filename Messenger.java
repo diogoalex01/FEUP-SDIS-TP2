@@ -81,4 +81,18 @@ public class Messenger {
             e.printStackTrace();
         }
     }
+
+    public static void sendStored(BigInteger fileKey, String myIpAddress, int myPort, InetSocketAddress socket) {
+        String message = "STORED " + fileKey + " " + myIpAddress + " " + myPort + "\n";
+
+        SSLSocket sslSocket = null;
+
+        try {
+            sslSocket = sendMessage(message, socket);
+            // System.out.println("---3");
+            sslSocket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

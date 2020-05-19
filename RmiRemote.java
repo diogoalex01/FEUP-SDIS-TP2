@@ -2,7 +2,6 @@ import java.rmi.Remote;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
-
 public interface RmiRemote extends Remote {
 
     String backup(String fileName, int replicationDegree) throws IOException, NoSuchAlgorithmException;
@@ -13,4 +12,5 @@ public interface RmiRemote extends Remote {
 
     String reclaim(int space) throws IOException, NoSuchAlgorithmException;
 
+    String state() throws IOException, NoSuchAlgorithmException;
 }

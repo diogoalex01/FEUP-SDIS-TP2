@@ -10,10 +10,11 @@ public class FingerFixer implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Fixing fingers...");
+        // System.out.println("Fixing fingers...");
         // OutsidePeer outsidePeer = null;
         try {
             // System.out.println("SIZE:" + peer.getFingerTable().getSize());
+
             for (int i = 0; i < peer.getFingerTable().getSize(); i++) {
                 // System.out.println(i);
                 // outsidePeer = peer.getSuccessor().findFinger(
@@ -22,11 +23,12 @@ public class FingerFixer implements Runnable {
                 BigInteger key = peer.getFingerTable().calculateFinger(peer.getId(), i);
                 InetSocketAddress entryAddress = peer.getSuccessor().getInetSocketAddress();
                 Messenger.sendFindFinger(peer.getAddress(), entryAddress, i, key);
-                //System.out.println(" | " + peer.getFingerTable().getPeer(i).getId());
+                // System.out.println(" | " + peer.getFingerTable().getPeer(i).getId());
             }
-            this.peer.getFingerTable().print();
+
+            // this.peer.getFingerTable().print();
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
     }
 }
