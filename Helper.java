@@ -1,3 +1,4 @@
+import java.io.File;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 
@@ -32,5 +33,34 @@ public class Helper {
             return (id.compareTo(lBound) >= 0) || (id.compareTo(rBound) <= 0);
 
         return (id.compareTo(lBound) >= 0) && (id.compareTo(rBound) <= 0);
+    }
+
+    public static void deleteFile(String fileId, String storage, String backup) {
+        if (fileId.equals("") || fileId.equals(null)) {
+            return;
+        }
+
+        File storageDir = new File(storage);
+        File backupDir = new File(backup);
+        File fileIDDir = new File(backupDir.getPath(), fileId);
+
+        if (backupDir.exists()) {
+            if (fileIDDir.delete()) {
+                System.out.println("File deleted successfully");
+            } else {
+                System.out.println("Failed to delete the file");
+            }
+        }
+
+        // Deletes the backup directory if it's empty after the fileID deletion
+        File[] backupDirectory = backupDir.listFiles();
+        if (backupDirectory.length == 0) {
+            backupDir.delete();
+        }
+
+        // File[] storageDirectory = storageDir.listFiles();
+        // if (storageDirectory.length == 0) {
+        // storageDir.delete();
+        // }
     }
 }

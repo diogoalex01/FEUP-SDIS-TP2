@@ -108,6 +108,12 @@ class RequestHandler implements Runnable {
         out.writeBytes(message);
     }
 
+    private void updateTable(String[] request) {
+        // UPDATETABLE key ipaddress port
+        OutsidePeer newEntry = new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3])));
+        this.peer.getStorage().addFileLocation(new BigInteger(request[1]), newEntry);
+    }
+
     private String findFile(String[] request) {
         String fileKey = request[1];
         String ipAddress = request[2];
@@ -156,7 +162,7 @@ class RequestHandler implements Runnable {
 
             String[] request = responseMess.split(" ");
 
-            String response = "";
+            String response = "\n";
             byte[] file;
             // System.out.println("received: " + request[0] + " " + request[1] + " " +
             // request[3]);
@@ -169,18 +175,17 @@ class RequestHandler implements Runnable {
                     updatePosition(request);
                     break;
                 case "UPDATEPREDECESSOR":
-                    // System.out.println("RECEBI DO PRED\n");
                     updatePredecessor(request);
                     break;
                 case "FINDPREDECESSOR":
-                    // System.out.println("RECEBI DO PRED2\n");
                     response = sendPredecessor(request);
                     out.writeBytes(response);
+                    out.flush();
                     break;
                 case "FINDFILE":
-                    // System.out.println("RECEBI DO PRED2\n");
                     response = findFile(request);
                     out.writeBytes(response);
+                    out.flush();
                     break;
                 case "MARCO":
                     getFinger(request);
@@ -193,22 +198,38 @@ class RequestHandler implements Runnable {
                 case "FORWARD":
                     file = new byte[Integer.parseInt(request[3])];
                     sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[3]));
-                    protocolHandler.forwardHandler(request, file);
-                    // out.writeBytes(response);
+                    response = protocolHandler.forwardHandler(request, file);
+
+                    out.writeBytes(response);
+                    out.flush();
                     break;
                 case "BACKUP":
-                    file = new byte[Integer.parseInt(request[5])];
-                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[5]));
+                    file = new byte[Integer.parseInt(request[7])];
+                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[7]));
+                    System.out.println("RECEBI = " + file.length);
                     response = protocolHandler.backupHandler(request, file);
+                    out.writeBytes(response);
+                    out.flush();
                     break;
                 case "RESTORE":
                     response = protocolHandler.restoreHandler(request);
                     break;
                 case "DELETE":
                     response = protocolHandler.deleteHandler(request);
+                    out.writeBytes(response);
+                    out.flush();
                     break;
-                case "RECLAIM":
-                    // response = protocolHandler.reclaimHandler(request);
+                case "REMOVED":
+                    file = new byte[Integer.parseInt(request[4])];
+                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[4]));
+                    response = protocolHandler.reclaimHandler(request, file);
+                    out.writeBytes(response);
+                    out.flush();
+                    break;
+                case "UPDATETABLE":
+                    updateTable(request);
+                    out.writeBytes("OK\n");
+                    out.flush();
                     break;
                 case "GIVEFILE":
                     System.out.println("RECEBI GIVEFILE");
@@ -223,9 +244,8 @@ class RequestHandler implements Runnable {
                     System.out.println(request[0]);
             }
             in.close();
-            out.close();
-            // System.out.println("---10");
-            sslSocket.close();
+            // out.close();
+            // sslSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -48,7 +48,7 @@ public class OutsidePeer {
         // in.close();
         out.close();
         // System.out.println("---5");
-        sslSocket.close();
+        // sslSocket.close();
         // String[] splitMessage = response.split(" ");
         // InetAddress inetAddress = InetAddress.getByName(splitMessage[1]);
         // InetSocketAddress socketAddress = new InetSocketAddress(inetAddress,
@@ -63,7 +63,7 @@ public class OutsidePeer {
         String message = "UPDATEPREDECESSOR " + peerSocketAddress.getAddress().getHostAddress() + " "
                 + peerSocketAddress.getPort() + "\n";
         SSLSocket sslSocket = Messenger.sendMessage(message, successorSocketAddress);
-        sslSocket.close();
+        // sslSocket.close();
     }
 
     public boolean testSuccessor() {
@@ -103,7 +103,7 @@ public class OutsidePeer {
         String response = in.readLine();
         in.close();
         out.close();
-        sslSocket.close();
+        // sslSocket.close();
         // PREDECESSOR <ip_address> <port>
         String[] splitMessage = response.split(" ");
         InetAddress inetAddress = InetAddress.getByName(splitMessage[1]);
@@ -121,10 +121,10 @@ public class OutsidePeer {
 
         out.writeBytes(Arrays.toString(string));
         String response = in.readLine();
-        in.close();
-        out.close();
+        // in.close();
+        // out.close();
         // System.out.println("---8");
-        sslSocket.close();
+        // sslSocket.close();
     }
 
     public OutsidePeer getNextSuccessor() throws UnknownHostException, IOException {
@@ -139,5 +139,21 @@ public class OutsidePeer {
         out.writeBytes(message);
         String[] response = in.readLine().split(" ");
         return new OutsidePeer(new InetSocketAddress(response[1], Integer.parseInt(response[2])));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        // self check
+        if (this == o)
+            return true;
+        // null check
+        if (o == null)
+            return false;
+        // type check and cast
+        if (getClass() != o.getClass())
+            return false;
+        OutsidePeer otherPeer = (OutsidePeer) o;
+        // field comparison
+        return (id.compareTo(otherPeer.getId()) == 0);
     }
 }

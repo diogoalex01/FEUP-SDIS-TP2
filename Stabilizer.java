@@ -15,6 +15,8 @@ public class Stabilizer implements Runnable {
 					if (peer.updateToNextPeer()) {
 						System.out.println("NO NEXT SUCCESSOR");
 						return;
+					} else {
+
 					}
 				}
 				OutsidePeer newNextPeer = this.peer.getSuccessor().getNextSuccessor();
@@ -23,6 +25,7 @@ public class Stabilizer implements Runnable {
 				} else {
 					this.peer.setNextSuccessor(newNextPeer);
 				}
+				peer.updateTable();
 				peer.getSuccessor().notifySuccessor(peer.getAddress(), peer.getSuccessor().getInetSocketAddress());
 				peer.stabilize();
 				peer.getExecutor().execute(fingerFixer);

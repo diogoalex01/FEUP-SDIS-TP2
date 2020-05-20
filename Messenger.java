@@ -31,7 +31,7 @@ public class Messenger {
         try {
             sslSocket = sendMessage(message, address);
             // System.out.println("---1");
-            sslSocket.close();
+            // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -46,7 +46,7 @@ public class Messenger {
         try {
             sslSocket = sendMessage(message, address);
             // System.out.println("---2");
-            sslSocket.close();
+            // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -61,7 +61,7 @@ public class Messenger {
         try {
             sslSocket = sendMessage(message, entryAddress);
             // System.out.println("---3");
-            sslSocket.close();
+            // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -90,7 +90,7 @@ public class Messenger {
         try {
             sslSocket = sendMessage(message, socket);
             // System.out.println("---3");
-            sslSocket.close();
+            // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

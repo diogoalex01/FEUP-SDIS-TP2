@@ -460,23 +460,4 @@ public class Peer implements RmiRemote {
             if (args.length == 5) {
                 String otherIpAddress = args[3];
                 int otherPort = Integer.parseInt(args[4]);
-                server = new Peer(address, port, otherIpAddress, otherPort);
-                // public Peer(String accessPoint, int port, String otherIpAddress, String
-                // otherPort)
-            } else {
-                server = new Peer(address, port, "0", -1);
-            }
-
-            RmiRemote rmiRemote = (RmiRemote) UnicastRemoteObject.exportObject(server, 0);
-            Registry registry = LocateRegistry.getRegistry();
-            registry.rebind(accessPoint, rmiRemote);
-            System.out.println("Server ready");
-        } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
-            e.printStackTrace();
-        }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(Peer::storeFile));
-    }
-
-}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            

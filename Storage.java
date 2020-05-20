@@ -1,17 +1,19 @@
+import java.math.BigInteger;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
-import java.math.BigInteger;
-import java.net.InetSocketAddress;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.net.ssl.SSLSocket;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
+
+import java.net.InetSocketAddress;
+import javax.net.ssl.SSLSocket;
 
 public class Storage implements Serializable {
     private List<BigInteger> storedFiles = Collections.synchronizedList(new ArrayList<BigInteger>());
@@ -50,10 +52,6 @@ public class Storage implements Serializable {
      */
     public boolean hasFileStored(BigInteger fileId) {
         return this.storedFiles.contains(fileId);
-    }
-
-    public void removeFileStored(BigInteger fileId) {
-        this.storedFiles.remove(fileId);
     }
 
     /**
@@ -101,12 +99,22 @@ public class Storage implements Serializable {
         }
     }
 
+    public ConcurrentHashMap<BigInteger, List<OutsidePeer>> getFileLocations() {
+        return fileLocation;
+    }
+
     /**
      * Adds file id to hash map
      */
     public void addFileLocation(BigInteger fileId, OutsidePeer outsidePeer) {
         if (this.fileLocation.containsKey(fileId)) {
-            this.fileLocation.get(fileId).add(outsidePeer);
+            if (!this.fileLocation.get(fileId).contains(outsidePeer)) {
+                this.fileLocation.get(fileId).add(outsidePeer);
+            }
+        } else {
+            List<OutsidePeer> list = Collections.synchronizedList(new ArrayList<OutsidePeer>());
+            list.add(outsidePeer);
+            this.fileLocation.put(fileId, list);
         }
     }
 
@@ -123,12 +131,26 @@ public class Storage implements Serializable {
         return this.fileLocation.containsKey(fileID);
     }
 
-    public void getFile(BigInteger fileId, String ipAddress, int port) throws IOException {
+    public void removePeerLocation(BigInteger fileId, String ipAddress, int port) {
+        OutsidePeer peer = new OutsidePeer(new InetSocketAddress(ipAddress, port));
+        if (fileLocation.containsKey(fileId)) {
+            List<OutsidePeer> peers = fileLocation.get(fileId);
+            if (peers.contains(peer)) {
+                System.out.println("Tinha size " + fileLocation.values().size());
+                fileLocation.values().remove((Object) peer);
+                System.out.println("Agora tenho size " + fileLocation.values().size());
+            }
+        }
+
+    }
+
+    public boolean getFile(BigInteger fileId, String ipAddress, int port) throws IOException {
         List<OutsidePeer> peers = fileLocation.get(fileId);
         String message = new String();
         String response = new String();
         SSLSocket sslSocket = null;
         System.out.println("tamanho vetor " + peers.size());
+
         for (int i = 0; i < peers.size(); i++) {
             InetSocketAddress socket = peers.get(i).getInetSocketAddress();
             // FINDFILE file_key ip_address port
@@ -137,14 +159,50 @@ public class Storage implements Serializable {
             BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
             response = in.readLine();
             in.close();
-            sslSocket.close();
+            // sslSocket.close();
             if (response.equals("SENT " + fileId)) {
                 System.out.println("RECEBI SENT");
-                break;
+                return true;
             }
         }
 
-        return;
+        return false;
+    }
+
+    public int spaceOccupied(String path) {
+        int counter = 0;
+
+        for (BigInteger hash : storedFiles) {
+            String filename = path + "/" + hash;
+
+            File file = new File(filename);
+            if (!file.exists() || !file.isFile()) {
+                continue;
+            }
+
+            counter += file.length();
+        }
+
+        System.out.println("Space occupied: " + counter);
+        return counter;
+    }
+
+    public boolean checkIfOverload(String path) {
+        return this.availableSpace >= this.spaceOccupied(path) || storedFiles.size() == 0;
+    }
+
+    /**
+     * Chooses a random chunk from the stored chunks
+     */
+    public BigInteger randomFile() {
+        Random rand = new Random();
+        System.out.println("STOREFILES SIZE: " + storedFiles.size());
+        int randomNumber = rand.nextInt(storedFiles.size());
+
+        System.out.println("random file " + randomNumber);
+        BigInteger hash = storedFiles.get(randomNumber);
+
+        return hash;
     }
 
     // public String print() {
@@ -207,6 +265,7 @@ public class Storage implements Serializable {
                 System.out.println("\tPeer: " + peerKey.getId());
             }
         }
+
         System.out.println("SF----------------------- ");
         System.out.println(Arrays.toString(storedFiles.toArray()));
         System.out.println("AF----------------------- ");
