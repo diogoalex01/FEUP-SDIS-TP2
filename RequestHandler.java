@@ -1,13 +1,16 @@
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
-
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.util.zip.InflaterOutputStream;
 
 import javax.net.ssl.SSLSocket;
 
@@ -55,6 +58,8 @@ class RequestHandler implements Runnable {
     private void updatePredecessor(String[] request) throws UnknownHostException, IOException {
         // UPDATEPREDECESSOR <ip_predecessor> <port_predecessor>
         this.peer.setPredecessor(new OutsidePeer(new InetSocketAddress(request[1], Integer.parseInt(request[2]))));
+        this.peer.updatePredecessorTable();
+
     }
 
     public String sendPredecessor(String[] request) throws UnknownHostException, IOException {
@@ -197,19 +202,31 @@ class RequestHandler implements Runnable {
                     nextSuccessor(request, out);
                 case "FORWARD":
                     file = new byte[Integer.parseInt(request[3])];
-                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[3]));
+                    InputStream inputStream = sslSocket.getInputStream();
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(file)) != -1) {
+                        buffer.write(file, 0, bytesRead);
+                    }
+                    buffer.flush();
+                    file = buffer.toByteArray();
                     response = protocolHandler.forwardHandler(request, file);
-
-                    out.writeBytes(response);
-                    out.flush();
+                    buffer.close();
+                    inputStream.close();
                     break;
                 case "BACKUP":
                     file = new byte[Integer.parseInt(request[7])];
-                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[7]));
-                    System.out.println("RECEBI = " + file.length);
+                    InputStream inputStreamBackup = sslSocket.getInputStream();
+                    ByteArrayOutputStream bufferBackup = new ByteArrayOutputStream();
+                    int bytesReadBackup;
+                    while ((bytesReadBackup = inputStreamBackup.read(file)) != -1) {
+                        bufferBackup.write(file, 0, bytesReadBackup);
+                    }
+                    bufferBackup.flush();
+                    file = bufferBackup.toByteArray();
                     response = protocolHandler.backupHandler(request, file);
-                    out.writeBytes(response);
-                    out.flush();
+                    bufferBackup.close();
+                    inputStreamBackup.close();
                     break;
                 case "RESTORE":
                     response = protocolHandler.restoreHandler(request);
@@ -221,10 +238,17 @@ class RequestHandler implements Runnable {
                     break;
                 case "REMOVED":
                     file = new byte[Integer.parseInt(request[4])];
-                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[4]));
+                    InputStream inputStreamRemoved = sslSocket.getInputStream();
+                    ByteArrayOutputStream bufferRemoved = new ByteArrayOutputStream();
+                    int bytesReadRemoved;
+                    while ((bytesReadRemoved = inputStreamRemoved.read(file)) != -1) {
+                        bufferRemoved.write(file, 0, bytesReadRemoved);
+                    }
+                    bufferRemoved.flush();
+                    file = bufferRemoved.toByteArray();
                     response = protocolHandler.reclaimHandler(request, file);
-                    out.writeBytes(response);
-                    out.flush();
+                    bufferRemoved.close();
+                    inputStreamRemoved.close();
                     break;
                 case "UPDATETABLE":
                     updateTable(request);
@@ -234,8 +258,17 @@ class RequestHandler implements Runnable {
                 case "GIVEFILE":
                     System.out.println("RECEBI GIVEFILE");
                     file = new byte[Integer.parseInt(request[2])];
-                    sslSocket.getInputStream().read(file, 0, Integer.parseInt(request[2]));
+                    InputStream inputStreamFile = sslSocket.getInputStream();
+                    ByteArrayOutputStream bufferFile = new ByteArrayOutputStream();
+                    int bytesReadFile;
+                    while ((bytesReadFile = inputStreamFile.read(file)) != -1) {
+                        bufferFile.write(file, 0, bytesReadFile);
+                    }
+                    bufferFile.flush();
+                    file = bufferFile.toByteArray();
                     response = protocolHandler.getFileHandler(request, file);
+                    bufferFile.close();
+                    inputStreamFile.close();
                     break;
                 case "STORED":
                     response = protocolHandler.storedHandler(request);

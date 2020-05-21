@@ -191,6 +191,23 @@ public class Peer implements RmiRemote {
         });
     }
 
+    public void updatePredecessorTable() {
+        getStorage().getFileLocations().forEach((key, list) -> {
+            if (key.compareTo(predecessor.getId()) == -1){
+                list.forEach((outsidePeer) -> {
+                    String message = "UPDATETABLE " + key + " "
+                            + outsidePeer.getInetSocketAddress().getAddress().getHostName() + " "
+                            + outsidePeer.getInetSocketAddress().getPort() + "\n";
+                    try {
+                        sendMessage(message, this.predecessor.getInetSocketAddress());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+        });
+    }
+
     // TODO check if its your id
     @Override
     public String backup(String fileName, int replicationDegree) {
@@ -236,6 +253,7 @@ public class Peer implements RmiRemote {
 
         try {
             System.out.println("receiver peer " + receiverPeer.getId());
+
             sendMessage(message, body, receiverPeer.getInetSocketAddress());
         } catch (IOException e) {
             e.printStackTrace();
@@ -384,14 +402,16 @@ public class Peer implements RmiRemote {
                 messageReceiver.getPort());
 
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
-        BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+        DataInputStream in = new DataInputStream(sslSocket.getInputStream());
         System.out.println(message);
         out.writeBytes(message);
-        out.write(body);
+        out.flush();
+        sslSocket.getOutputStream().write(body);
+        sslSocket.getOutputStream().flush();
         // String response = in.readLine();
-        // in.close();
-        // out.close();
-        // sslSocket.close();
+        in.close();
+        out.close();
+        sslSocket.close();
     }
 
     /**
@@ -478,5 +498,4 @@ public class Peer implements RmiRemote {
 
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::storeFile));
     }
-
 }

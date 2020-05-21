@@ -16,6 +16,7 @@ public class Messenger {
 
             DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
             out.writeBytes(message);
+            out.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
