@@ -58,11 +58,14 @@ public class ProtocolHandler {
         int successorPort = Integer.parseInt(request[4]);
         int myPort = this.peer.getAddress().getPort();
         String myIpAddress = this.peer.getAddress().getAddress().getHostAddress();
+        InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
+        InetSocketAddress successorInetSocketAddress = new InetSocketAddress(succesorIpAddress, successorPort);
+
         try {
             String fileKey = request[5];
             int replicationDegree = Integer.parseInt(request[6]);
             // TODO: ver se o file foi enviado por mim
-            if (replicationDegree < 1) {
+            if (replicationDegree < 1 && replicationDegree != -1) {
                 return "OK \n";
             }
 
@@ -75,13 +78,29 @@ public class ProtocolHandler {
             String message = "BACKUP " + ipAddress + " " + port + " " + succesorIpAddress + " " + successorPort + " "
                     + fileKey + " " + replicationDegree + " " + body.length + "\n";
 
-            if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey)) && replicationDegree > 1) {
-                replicationDegree--;
-                // TODO enviar stored?
-                String message1 = "BACKUP " + ipAddress + " " + port + " " + succesorIpAddress + " " + successorPort
-                        + " " + fileKey + " " + replicationDegree + " " + body.length + "\n";
+            if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
+                if(replicationDegree > 1 || replicationDegree == -1)
+                {
 
-                this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
+                    if(replicationDegree != -1){
+                        replicationDegree--;
+                    }
+
+                    // TODO enviar stored?
+                    String message1 = "BACKUP " + ipAddress + " " + port + " " + succesorIpAddress + " " + successorPort
+                            + " " + fileKey + " " + replicationDegree + " " + body.length + "\n";
+    
+                    this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
+                    
+                }
+
+                System.out.println("mandei o 1 stored");
+                Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, inetSocketAddress);
+    
+
+                System.out.println("mandei o 2 stored : " + succesorIpAddress + "porta: " + successorPort);
+                Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, successorInetSocketAddress);
+
                 return "OK \n";
             }
 
@@ -114,13 +133,12 @@ public class ProtocolHandler {
 
             System.out.println("Stored!");
             replicationDegree--;
-            InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
+
             OutsidePeer peer = new OutsidePeer(inetSocketAddress);
             this.peer.getStorage().addStoredFile(new BigInteger(fileKey));
             System.out.println("mandei o 1 stored");
             Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, inetSocketAddress);
 
-            InetSocketAddress successorInetSocketAddress = new InetSocketAddress(succesorIpAddress, successorPort);
             System.out.println("mandei o 2 stored para o ip: " + succesorIpAddress + "porta: " + successorPort);
             Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, successorInetSocketAddress);
 
@@ -186,10 +204,11 @@ public class ProtocolHandler {
         String fileKey = request[1];
         String ipAddress = request[2];
         int port = Integer.parseInt(request[3]);
+        this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
+        this.peer.getStorage().removeAskedFile(new BigInteger(fileKey));
 
         if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
             this.peer.getStorage().removeStoredFile(new BigInteger(fileKey));
-            this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
             Helper.deleteFile(fileKey, this.peer.getStorageDirPath(), this.peer.getBackupDirPath());
         }
 
@@ -212,20 +231,35 @@ public class ProtocolHandler {
         BigInteger fileKey = new BigInteger(request[1]);
         String ipAddress = request[2];
         int port = Integer.parseInt(request[3]);
-        this.peer.getStorage().removePeerLocation(fileKey, ipAddress, port);
         OutsidePeer outsidePeer = this.peer.getSuccessor();
+        this.peer.getStorage().removePeerLocation(fileKey, ipAddress, port);
 
+        // Peer that holds table with file locations 
         if (Helper.middlePeer(fileKey, peer.getPredecessor().getId(), peer.getId())) {
+
+            String message1 = "REMOVELOCATION " + request[1] + " " + request[2] + " " + request[3];
+    
             String message = "BACKUP " + this.peer.getAddress().getAddress().getHostAddress() + " "
                     + this.peer.getAddress().getPort() + " "
                     + this.peer.getSuccessor().getInetSocketAddress().getAddress().getHostAddress() + " "
-                    + this.peer.getSuccessor().getInetSocketAddress().getPort() + " " + fileKey + " " + "1 "
+                    + this.peer.getSuccessor().getInetSocketAddress().getPort() + " " + fileKey + " " + "-1 "
                     + body.length + "\n";
             try {
                 this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
+                this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            return "OK \n";
+        }
+
+        String message = "REMOVED " + request[1] + " " + request[2] + " " + request[3]
+        + " " + request[4] + "\n ";
+        System.out.println("Fiz forward do removed");
+        try {
+            this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         return "OK \n";

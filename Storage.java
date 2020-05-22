@@ -34,6 +34,13 @@ public class Storage implements Serializable {
     }
 
     /**
+     * Clear file location
+     */
+    public void clearFileLocation() {
+        fileLocation.clear();
+    }
+
+    /**
      * Sets available space
      */
     public void setAvailableSpace(int space) {
@@ -133,11 +140,16 @@ public class Storage implements Serializable {
 
     public void removePeerLocation(BigInteger fileId, String ipAddress, int port) {
         OutsidePeer peer = new OutsidePeer(new InetSocketAddress(ipAddress, port));
+        System.out.println("\n\nEntrei no remove\n\n");
         if (fileLocation.containsKey(fileId)) {
+            System.out.println("Tenho a location do file" + fileId);
             List<OutsidePeer> peers = fileLocation.get(fileId);
             if (peers.contains(peer)) {
-                System.out.println("Tinha size " + fileLocation.values().size());
-                fileLocation.values().remove((Object) peer);
+                System.out.println("Este peer é location do file" + fileId);
+                System.out.println("Tinha size " + peers.size());
+                peers.remove(peer);
+                fileLocation.remove(fileId);
+                fileLocation.put(fileId, peers);
                 System.out.println("Agora tenho size " + fileLocation.values().size());
             }
         }
@@ -157,6 +169,10 @@ public class Storage implements Serializable {
             message = "FINDFILE " + fileId + " " + ipAddress + " " + port + "\n";
             sslSocket = Messenger.sendMessage(message, socket);
             BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
+            if(sslSocket.isInputShutdown())
+            {
+                continue;
+            }
             response = in.readLine();
             in.close();
             // sslSocket.close();

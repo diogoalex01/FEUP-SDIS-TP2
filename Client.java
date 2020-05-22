@@ -26,7 +26,7 @@ public class Client {
         if (args.length != 3 && args.length != 4) {
             System.out.println("\n Usage:\tClient <peerAccessPoint> <subProtocol> \n");
             System.out.println(" Subprotocols :\t");
-            System.out.println(" - BACKUP <file> \t");
+            System.out.println(" - BACKUP <file> [replicationDegree] \t");
             System.out.println(" - RESTORE <file>\t");
             System.out.println(" - DELETE <file>\t");
             System.out.println(" - RECLAIM <space>\t");
@@ -44,8 +44,15 @@ public class Client {
     private static void parseArgs(String[] args, RmiRemote peer) throws Exception {
         switch (protocol) {
             case "BACKUP":
-                // int repDegree = Integer.parseInt(args[3]);
-                peer.backup(filePath, 2);
+            int repDegree;
+                if(args.length == 3)
+                {
+                    repDegree = 2;
+                }else{
+                    repDegree = Integer.parseInt(args[3]);
+                }
+                
+                peer.backup(filePath, repDegree);
                 System.out.println("\nBackup finished successfully\n");
                 break;
 

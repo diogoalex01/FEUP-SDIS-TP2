@@ -9,6 +9,10 @@ public class Stabilizer implements Runnable {
 
 	public void run() {
 		try {
+			System.out.println("Peer with id: " + this.peer.getId());
+			System.out.println("Successor id: " + this.peer.getSuccessor().getId());
+			System.out.println("Predecessor id: " + this.peer.getPredecessor().getId());
+			this.peer.getFingerTable().print();
 			peer.getStorage().print();
 			if (peer.getSuccessor() != null) {
 				if (peer.getSuccessor().testSuccessor()) {

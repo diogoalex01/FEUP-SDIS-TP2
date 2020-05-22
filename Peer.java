@@ -69,6 +69,7 @@ public class Peer implements RmiRemote {
         backupDirPath = storageDirPath + "/Backup";
         restoreDirPath = storageDirPath + "/Restore";
         readFile();
+        storage.clearFileLocation();
         if (otherPort != -1) {
             InetAddress otherAddress = InetAddress.getByName(otherIpAddress);
             this.successor = new OutsidePeer(new InetSocketAddress(otherAddress, otherPort));
@@ -193,17 +194,27 @@ public class Peer implements RmiRemote {
 
     public void updatePredecessorTable() {
         getStorage().getFileLocations().forEach((key, list) -> {
-            if (key.compareTo(predecessor.getId()) == -1){
+            //
+            if (!Helper.middlePeer(key, predecessor.getId(), id)) {
+                // if(key.compareTo(predecessor.getId()) == -1){
                 list.forEach((outsidePeer) -> {
                     String message = "UPDATETABLE " + key + " "
                             + outsidePeer.getInetSocketAddress().getAddress().getHostName() + " "
                             + outsidePeer.getInetSocketAddress().getPort() + "\n";
+
                     try {
                         sendMessage(message, this.predecessor.getInetSocketAddress());
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 });
+
+                String message1 = "REMOVETABLE " + key + "\n";
+                try {
+                    sendMessage(message1, this.successor.getInetSocketAddress());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -246,9 +257,22 @@ public class Peer implements RmiRemote {
             // message = "BACKUP " + fileId + " " + replicationDegree + " " + body.length +
             // "\n";
             // } else {
-            message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
+
+            // Between this peer and its predecessor
+            if (Helper.middlePeer(fileId, this.predecessor.getId(), id)) {
+
+                storage.initializeFileLocation(fileId);
+                 message = "BACKUP " + address.getAddress().getHostAddress() + " "
+                        + address.getPort() + " "
+                        + successor.getInetSocketAddress().getAddress().getHostAddress() + " "
+                        + successor.getInetSocketAddress().getPort() + " " + fileId+ " "
+                        + replicationDegree + " " + body.length + "\n";
+            } else {
+                message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
+            }
+
             System.out.println(message);
-            // }
+            
         }
 
         try {

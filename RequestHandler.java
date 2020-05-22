@@ -115,9 +115,21 @@ class RequestHandler implements Runnable {
 
     private void updateTable(String[] request) {
         // UPDATETABLE key ipaddress port
+        BigInteger fileKey = new BigInteger(request[1]);
         OutsidePeer newEntry = new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3])));
-        this.peer.getStorage().addFileLocation(new BigInteger(request[1]), newEntry);
+        this.peer.getStorage().addFileLocation(fileKey, newEntry);
+        if(!Helper.middlePeer(fileKey, this.peer.getPredecessor().getId(), this.peer.getId())){
+
+            String message = "REMOVETABLE " + fileKey + "\n";
+            Messenger.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
+        }
     }
+
+    private void removeTable(String[] request) {
+        // REMOVETABLE key
+        this.peer.getStorage().removeFileLocation(new BigInteger(request[1]));
+    }
+
 
     private String findFile(String[] request) {
         String fileKey = request[1];
@@ -231,6 +243,14 @@ class RequestHandler implements Runnable {
                 case "RESTORE":
                     response = protocolHandler.restoreHandler(request);
                     break;
+                case "REMOVELOCATION":
+                    response = "OK\n";
+                    BigInteger fileKey = new BigInteger(request[1]);
+                    String ipAddress = request[2];
+                    int port = Integer.parseInt(request[3]);
+                    OutsidePeer outsidePeer = this.peer.getSuccessor();
+                    this.peer.getStorage().removePeerLocation(fileKey, ipAddress, port);
+                    break;
                 case "DELETE":
                     response = protocolHandler.deleteHandler(request);
                     out.writeBytes(response);
@@ -252,6 +272,11 @@ class RequestHandler implements Runnable {
                     break;
                 case "UPDATETABLE":
                     updateTable(request);
+                    out.writeBytes("OK\n");
+                    out.flush();
+                    break;
+                case "REMOVETABLE":
+                    removeTable(request);
                     out.writeBytes("OK\n");
                     out.flush();
                     break;
