@@ -18,7 +18,6 @@ public class Messenger {
             out.writeBytes(message);
             out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
         }
         return sslSocket;
     }
@@ -34,7 +33,6 @@ public class Messenger {
             // System.out.println("---1");
             // sslSocket.close();
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -49,7 +47,6 @@ public class Messenger {
             // System.out.println("---2");
             // sslSocket.close();
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -64,7 +61,6 @@ public class Messenger {
             // System.out.println("---3");
             // sslSocket.close();
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -79,7 +75,6 @@ public class Messenger {
             // System.out.println("---4");
             // sslSocket.close();
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

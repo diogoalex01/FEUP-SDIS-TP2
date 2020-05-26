@@ -202,7 +202,6 @@ public class Peer implements RmiRemote {
                     try {
                         sendMessage(message, this.predecessor.getInetSocketAddress());
                     } catch (IOException e) {
-                        e.printStackTrace();
                     }
                 });
 
@@ -210,7 +209,6 @@ public class Peer implements RmiRemote {
                 try {
                     sendMessage(message1, this.successor.getInetSocketAddress());
                 } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         });
@@ -264,21 +262,34 @@ public class Peer implements RmiRemote {
                         + successor.getInetSocketAddress().getAddress().getHostAddress() + " "
                         + successor.getInetSocketAddress().getPort() + " " + fileId+ " "
                         + replicationDegree + " " + body.length + "\n";
+
+                        try {
+                            System.out.println("receiver peer " + receiverPeer.getId());
+                            if (!successor.testSuccessor()) {
+                                sendMessage(message, body, successor.getInetSocketAddress());
+                            }
+                            else{
+                                sendMessage(message, body, nextSuccessor.getInetSocketAddress());
+                            }
+                            //sendMessage(message, body, successor.getInetSocketAddress());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
             } else {
                 message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
+                try {
+                    System.out.println("receiver peer " + receiverPeer.getId());
+                    
+                    sendMessage(message, body, receiverPeer.getInetSocketAddress());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             System.out.println(message);
             
         }
 
-        try {
-            System.out.println("receiver peer " + receiverPeer.getId());
-
-            sendMessage(message, body, receiverPeer.getInetSocketAddress());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         System.out.println("end Backup");
         return "OK";

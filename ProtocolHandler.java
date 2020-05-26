@@ -60,6 +60,7 @@ public class ProtocolHandler {
         String myIpAddress = this.peer.getAddress().getAddress().getHostAddress();
         InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
         InetSocketAddress successorInetSocketAddress = new InetSocketAddress(succesorIpAddress, successorPort);
+   
 
         try {
             String fileKey = request[5];
@@ -67,11 +68,13 @@ public class ProtocolHandler {
             // TODO: ver se o file foi enviado por mim
             System.out.println("!!!MANDARAM ME O BACKUP \n\n");
             if (replicationDegree < 1 && replicationDegree != -1) {
+    
                 return "OK \n";
             }
 
             if (ipAddress.equals(myIpAddress) && myPort == port) {
                 System.out.println("There aren't enough peers to backup the file");
+
                 return "OK \n";
             }
 
@@ -80,6 +83,7 @@ public class ProtocolHandler {
                     + fileKey + " " + replicationDegree + " " + body.length + "\n";
 
             if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
+
                 if(replicationDegree > 1 || replicationDegree == -1)
                 {
 
@@ -91,7 +95,7 @@ public class ProtocolHandler {
                     System.out.println("ja tenho o file vou reencaminhar");
                     String message1 = "BACKUP " + ipAddress + " " + port + " " + succesorIpAddress + " " + successorPort
                             + " " + fileKey + " " + replicationDegree + " " + body.length + "\n";
-    
+
                     if (!outsidePeer.testSuccessor()) {
                         Peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
                     }
@@ -99,7 +103,6 @@ public class ProtocolHandler {
                         OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
                         Peer.sendMessage(message1, body, otherSuccessor.getInetSocketAddress());
                     }
-
                     
                 }
 /*
@@ -112,14 +115,20 @@ public class ProtocolHandler {
 */
                 return "OK \n";
             }
-
             int space = this.peer.getStorage().spaceOccupied(this.peer.getBackupDirPath())
                     + Integer.parseInt(request[7]);
             int availableSpace = this.peer.getStorage().getAvailableSpace();
 
             if (this.peer.getStorage().hasAskedForFile(new BigInteger(fileKey))
                     || (space > availableSpace && availableSpace != -1)) {
-                this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
+                        if (!outsidePeer.testSuccessor()) {
+                            Peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
+                        }
+                        else{
+                            OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
+                            Peer.sendMessage(message, body, otherSuccessor.getInetSocketAddress());
+                        }
+
                 return "OK \n";
             }
 
@@ -158,7 +167,7 @@ public class ProtocolHandler {
                 this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
 
         return "OK \n";
@@ -254,10 +263,17 @@ public class ProtocolHandler {
                     + this.peer.getSuccessor().getInetSocketAddress().getPort() + " " + fileKey + " " + "-1 "
                     + body.length + "\n";
             try {
-                this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
-                this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
+                if (!outsidePeer.testSuccessor()) {
+                    this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
+                    this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
+                }
+                else{
+                    OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
+                    this.peer.sendMessage(message, body, otherSuccessor.getInetSocketAddress());
+                    this.peer.sendMessage(message1, body, otherSuccessor.getInetSocketAddress());
+                }
+                
             } catch (IOException e) {
-                e.printStackTrace();
             }
             return "OK \n";
         }
