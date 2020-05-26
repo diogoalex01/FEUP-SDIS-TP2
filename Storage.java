@@ -15,7 +15,7 @@ import java.util.Random;
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLSocket;
 
-public class Storage implements Serializable {
+public class Storage {
     private List<BigInteger> storedFiles = Collections.synchronizedList(new ArrayList<BigInteger>());
     private List<BigInteger> askedFiles = Collections.synchronizedList(new ArrayList<BigInteger>());
     private ConcurrentHashMap<BigInteger, List<OutsidePeer>> fileLocation = new ConcurrentHashMap<BigInteger, List<OutsidePeer>>();

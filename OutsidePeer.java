@@ -67,6 +67,7 @@ public class OutsidePeer {
     }
 
     public boolean testSuccessor() {
+        System.out.println(("ESTOU A TESTAR"));
         try {
             SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
             SSLSocket sslSocket = (SSLSocket) sslSocketFactory
@@ -78,15 +79,17 @@ public class OutsidePeer {
             out.writeBytes(message);
             return false;
         } catch (SocketTimeoutException e) {
+            System.out.println(("nao ESTA a funcionar"));
             return true;
         } catch (ConnectException e) {
+            System.out.println(("nao ESTA a funcionar"));
             return true;
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+        System.out.println(("nao ESTA a funcionar"));
         return true;
     }
 

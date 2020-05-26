@@ -1,11 +1,9 @@
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -22,12 +20,12 @@ import java.rmi.server.UnicastRemoteObject;
 
 public class Peer implements RmiRemote {
     private BigInteger id;
-    private InetSocketAddress address;
+    private static InetSocketAddress address;
     private int port;
     private OutsidePeer predecessor;
-    private OutsidePeer successor;
+    private static OutsidePeer successor;
     private OutsidePeer nextSuccessor;
-    private FingerTable fingerTable;
+    private static FingerTable fingerTable;
     private RequestListener listener;
     private ScheduledThreadPoolExecutor executor;
     private static String storageDirPath;
@@ -57,7 +55,7 @@ public class Peer implements RmiRemote {
         executor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(150);
         executor.execute(this.listener);
         this.stabilizer = new Stabilizer(this);
-        executor.scheduleAtFixedRate(stabilizer, 5, 5, TimeUnit.SECONDS);
+        executor.scheduleAtFixedRate(stabilizer, 2, 2, TimeUnit.SECONDS);
 
         // Initialize finger table
         fingerTable = new FingerTable(Helper.getNumberOfNodes(), new OutsidePeer(new InetSocketAddress(address, port)));
@@ -69,7 +67,6 @@ public class Peer implements RmiRemote {
         backupDirPath = storageDirPath + "/Backup";
         restoreDirPath = storageDirPath + "/Restore";
         readFile();
-        storage.clearFileLocation();
         if (otherPort != -1) {
             InetAddress otherAddress = InetAddress.getByName(otherIpAddress);
             this.successor = new OutsidePeer(new InetSocketAddress(otherAddress, otherPort));
@@ -93,7 +90,7 @@ public class Peer implements RmiRemote {
         return id;
     }
 
-    public InetSocketAddress getAddress() {
+    public static InetSocketAddress getAddress() {
         return address;
     }
 
@@ -101,7 +98,7 @@ public class Peer implements RmiRemote {
         return port;
     }
 
-    public OutsidePeer getSuccessor() {
+    public static OutsidePeer getSuccessor() {
         return successor;
     }
 
@@ -125,7 +122,7 @@ public class Peer implements RmiRemote {
         this.predecessor = predecessor;
     }
 
-    public FingerTable getFingerTable() {
+    public static FingerTable getFingerTable() {
         return fingerTable;
     }
 
@@ -139,7 +136,7 @@ public class Peer implements RmiRemote {
         return this.nextSuccessor == null;
     }
 
-    public String getBackupDirPath() {
+    public static String getBackupDirPath() {
         return backupDirPath;
     }
 
@@ -340,7 +337,7 @@ public class Peer implements RmiRemote {
     public String reclaim(int space) {
         System.out.println("reclaim");
 
-        if (fingerTable.getSize() == 0 || this.successor == null) {
+        if (getFingerTable().getSize() == 0 || getSuccessor() == null) {
             System.out.println("There are no peers available");
             return "ERROR";
         }
@@ -362,9 +359,9 @@ public class Peer implements RmiRemote {
         return "";
     }
 
-    public void sendRemoved(BigInteger fileId) {
+    public static void sendRemoved(BigInteger fileId) {
         byte[] body = null;
-        String fileName = this.backupDirPath + "/" + fileId.toString();
+        String fileName = getBackupDirPath() + "/" + fileId.toString();
         File file = new File(fileName);
         try {
             body = Files.readAllBytes(file.toPath());
@@ -373,7 +370,7 @@ public class Peer implements RmiRemote {
         }
 
         OutsidePeer receiverPeer = fingerTable.getNearestPeer(fileId);
-        String message = "REMOVED " + fileId + " " + address.getAddress().getHostAddress() + " " + address.getPort()
+        String message = "REMOVED " + fileId + " " + getAddress().getAddress().getHostAddress() + " " + getAddress().getPort()
                 + " " + body.length + "\n ";
         try {
             sendMessage(message, body, receiverPeer.getInetSocketAddress());
@@ -419,7 +416,7 @@ public class Peer implements RmiRemote {
         return response;
     }
 
-    public void sendMessage(String message, byte[] body, InetSocketAddress messageReceiver)
+    public static void sendMessage(String message, byte[] body, InetSocketAddress messageReceiver)
             throws UnknownHostException, IOException {
         SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(messageReceiver.getAddress().getHostAddress(),
@@ -442,52 +439,43 @@ public class Peer implements RmiRemote {
      * Stores Class Records to a file
      */
     public static void storeFile() {
-        try {
-            String filePath = storageDirPath + "/" + "records.ser";
-            FileOutputStream fileOutputStream = new FileOutputStream(new File(filePath));
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
 
-            // Write objects to file
-            objectOutputStream.writeObject(storage);
+        System.out.println("Hello");
+    
+  
+        if (getFingerTable().getSize() == 0 || getSuccessor() == null) {
+            return;
+        }
 
-            objectOutputStream.close();
-            fileOutputStream.close();
-        } catch (IOException e) {
-            System.out.println("Error initializing stream");
+        storage.setAvailableSpace(0);
+
+        while (true) {
+            if (storage.checkIfOverload(getBackupDirPath())) {
+                break;
+            }
+
+            BigInteger fileId = storage.randomFile();
+            sendRemoved(fileId);
+            storage.removeStoredFile(fileId);
+            Helper.deleteFile(fileId.toString(), storageDirPath, backupDirPath);
         }
     }
 
-    /**
-     * Reads Class Records from a file
-     */
     public void readFile() {
+
         try {
-            String filePath = storageDirPath + "/" + "records.ser";
-            final Path recordsPath = Paths.get(filePath);
             final Path peerFolderPath = Paths.get(storageDirPath);
 
             if (!Files.exists(peerFolderPath)) {
                 Files.createDirectories(peerFolderPath);
                 return;
             }
-
-            File file = new File(filePath);
-            FileInputStream fileInputStream = new FileInputStream(file);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-
-            // Read objects
-            storage = (Storage) objectInputStream.readObject();
-
-            objectInputStream.close();
-            fileInputStream.close();
-        } catch (FileNotFoundException e) {
-            System.out.println("File not found");
         } catch (IOException e) {
-            System.out.println("Error initializing stream");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("File not found");
         }
+
     }
+
 
     public static void main(String[] args) {
         if (args.length != 3 && args.length != 5) {
@@ -521,5 +509,6 @@ public class Peer implements RmiRemote {
         }
 
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::storeFile));
+        
     }
 }

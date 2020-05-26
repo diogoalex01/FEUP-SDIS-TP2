@@ -65,6 +65,7 @@ public class ProtocolHandler {
             String fileKey = request[5];
             int replicationDegree = Integer.parseInt(request[6]);
             // TODO: ver se o file foi enviado por mim
+            System.out.println("!!!MANDARAM ME O BACKUP \n\n");
             if (replicationDegree < 1 && replicationDegree != -1) {
                 return "OK \n";
             }
@@ -87,20 +88,28 @@ public class ProtocolHandler {
                     }
 
                     // TODO enviar stored?
+                    System.out.println("ja tenho o file vou reencaminhar");
                     String message1 = "BACKUP " + ipAddress + " " + port + " " + succesorIpAddress + " " + successorPort
                             + " " + fileKey + " " + replicationDegree + " " + body.length + "\n";
     
-                    this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
+                    if (!outsidePeer.testSuccessor()) {
+                        Peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
+                    }
+                    else{
+                        OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
+                        Peer.sendMessage(message1, body, otherSuccessor.getInetSocketAddress());
+                    }
+
                     
                 }
-
+/*
                 System.out.println("mandei o 1 stored");
                 Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, inetSocketAddress);
     
 
                 System.out.println("mandei o 2 stored : " + succesorIpAddress + "porta: " + successorPort);
                 Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, successorInetSocketAddress);
-
+*/
                 return "OK \n";
             }
 
