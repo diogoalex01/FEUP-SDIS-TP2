@@ -79,11 +79,15 @@ public class Storage {
      * Adds a new asked file
      */
     public void addAskedFile(BigInteger fileId) {
-        this.askedFiles.add(fileId);
+        if (!askedFiles.contains(fileId)) {
+            askedFiles.add(fileId);
+        }
     }
 
-    public void removeAskedFile(BigInteger fileId) {
-        this.askedFiles.remove(fileId);
+    public void removeAskedFile(BigInteger fileId) { 
+        if (askedFiles.contains(fileId)) {
+            askedFiles.remove(fileId);
+        }
     }
 
     /**
@@ -182,6 +186,22 @@ public class Storage {
         }
 
         return false;
+    }
+
+    public boolean sendDelete(BigInteger fileId) throws IOException {
+        List<OutsidePeer> peers = fileLocation.get(fileId);
+        String message = new String();
+        if(peers != null){
+            for (int i = 0; i < peers.size(); i++) {
+                InetSocketAddress socket = peers.get(i).getInetSocketAddress();
+                // FINDFILE file_key ip_address port
+                message = "DELETE " + fileId + "\n";
+                Messenger.sendMessage(message, socket);
+            }
+            // sslSocket.close();
+        }
+
+        return true;
     }
 
     public int spaceOccupied(String path) {

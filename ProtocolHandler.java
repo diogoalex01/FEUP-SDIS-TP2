@@ -217,37 +217,58 @@ public class ProtocolHandler {
 
     public String deleteHandler(String[] request) throws UnknownHostException {
         // DELETE <file_key> <ip_address> <port>
-        String fileKey = request[1];
-        String ipAddress = request[2];
-        int port = Integer.parseInt(request[3]);
+        System.out.println("Entrei no delete");
+        String fileKey;
+        String ipAddress;
+        int port;
+        if(request.length == 4)
+        {
+            fileKey = request[1];
+            ipAddress = request[2];
+            port = Integer.parseInt(request[3]);
+
+        }else{
+            System.out.println("ENTREI NO ELSE");
+            fileKey = request[1];
+            this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
+            if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
+                this.peer.getStorage().removeStoredFile(new BigInteger(fileKey));
+                Helper.deleteFile(fileKey, this.peer.getStorageDirPath(), this.peer.getBackupDirPath());
+            }
+            return "OK \n";
+        }
+
         this.peer.getStorage().removeAskedFile(new BigInteger(fileKey));
 
         if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
             this.peer.getStorage().removeStoredFile(new BigInteger(fileKey));
+            System.out.println("1");
             Helper.deleteFile(fileKey, this.peer.getStorageDirPath(), this.peer.getBackupDirPath());
         }
 
         if (!(ipAddress.equals(this.peer.getAddress().getHostName())) && (this.peer.getPort() != port)) {
-            if (this.peer.getStorage().hasFileLocation(new BigInteger(fileKey))) {
+            String message;
+            if (Helper.middlePeer(new BigInteger(fileKey), peer.getPredecessor().getId(), peer.getId())) {
+                message = "DELETE " + "\n";
                 try {
-                    sendDelete(new BigInteger(fileKey), ipAddress, port);
+                    this.peer.getStorage().sendDelete(new BigInteger(fileKey));
                 } catch (IOException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
+                System.out.println("2");
                 this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
             } else {
-
+                System.out.println("3");
                 this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
-
-                String message = "DELETE " + fileKey + " " + ipAddress + " " + port + "\n";
-                try {
-                    this.peer.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                System.out.println("ENVIEI um delete");
+                message = "DELETE " + fileKey + " " + ipAddress + " " + port + "\n";
             }
-
+            try {
+                this.peer.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         return "OK \n";
@@ -334,21 +355,4 @@ public class ProtocolHandler {
         return "OK \n";
     }
 
-    public boolean sendDelete(BigInteger fileId, String ipAddress, int port) throws IOException {
-        List<OutsidePeer> peers = this.peer.getStorage().getFileLocations().get(fileId);
-        String message = new String();
-
-        System.out.println("tamanho vetor " + peers.size());
-
-        for (int i = 0; i < peers.size(); i++) {
-            InetSocketAddress socket = peers.get(i).getInetSocketAddress();
-            // FINDFILE file_key ip_address port
-            message = "DELETE " + fileId + " " + ipAddress + " " + port + "\n";
-            Messenger.sendMessage(message, socket);
-
-            // sslSocket.close();
-        }
-
-        return true;
-    }
 }

@@ -5,16 +5,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.zip.InflaterOutputStream;
-
 import javax.net.ssl.SSLSocket;
 
 class RequestHandler implements Runnable {
@@ -139,7 +133,7 @@ class RequestHandler implements Runnable {
         int port = Integer.parseInt(request[3]);
 
         if (!this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
-            return "NO";
+            return "NO\n";
         }
 
         String fileName = this.peer.getBackupDirPath() + "/" + fileKey;
@@ -160,7 +154,7 @@ class RequestHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return "SENT " + fileKey;
+        return "SENT " + fileKey + "\n";
     }
 
     @Override
@@ -214,6 +208,7 @@ class RequestHandler implements Runnable {
                     break;
                 case "NEXTSUCCESSOR":
                     nextSuccessor(request, out);
+                    break;
                 case "FORWARD":
                     file = new byte[Integer.parseInt(request[3])];
                     InputStream inputStream = sslSocket.getInputStream();

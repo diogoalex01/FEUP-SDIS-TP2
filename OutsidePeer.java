@@ -75,7 +75,7 @@ public class OutsidePeer {
             sslSocket.setSoTimeout(1000);
             DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-            String message = "TEST \n";
+            String message = "TEST\n"; 
             out.writeBytes(message);
             return false;
         } catch (SocketTimeoutException e) {

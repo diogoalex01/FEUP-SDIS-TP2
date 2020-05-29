@@ -255,7 +255,7 @@ public class Peer implements RmiRemote {
 
             // Between this peer and its predecessor
             if (Helper.middlePeer(fileId, this.predecessor.getId(), id)) {
-
+                System.out.println("SENT BACKUP");
                 storage.initializeFileLocation(fileId);
                 message = "BACKUP " + address.getAddress().getHostAddress() + " " + address.getPort() + " "
                         + successor.getInetSocketAddress().getAddress().getHostAddress() + " "
@@ -274,6 +274,7 @@ public class Peer implements RmiRemote {
                     e.printStackTrace();
                 }
             } else {
+                System.out.println("SENT FORWARD");
                 message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
                 try {
                     System.out.println("receiver peer " + receiverPeer.getId());
@@ -320,7 +321,7 @@ public class Peer implements RmiRemote {
     @Override
     public String delete(String fileName) {
         System.out.println("delete");
-
+        String message;
         // String message = "BACKUP 32 1 127.0.0.1 7000 dfasfsdf\n";
         if (fingerTable.getSize() == 0 || this.successor == null) {
             System.out.println("There are no peers available");
@@ -328,15 +329,40 @@ public class Peer implements RmiRemote {
         }
 
         BigInteger fileId = Helper.getFileId(fileName);
-        this.storage.removeAskedFile(fileId);
-        String message = "DELETE " + fileId + " " + address.getAddress().getHostAddress() + " " + this.port + "\n";
 
+        if (storage.hasFileStored(fileId)) {
+            System.out.println("ESTOU A APAGAR LOGO O FILE");
+            storage.removeStoredFile(fileId);
+            System.out.println("Vou apagar");
+            Helper.deleteFile(fileId.toString(), getStorageDirPath(), getBackupDirPath());
+        }
+        this.storage.removeAskedFile(fileId);
+        
+        if(Helper.middlePeer(fileId, getPredecessor().getId(), getId())){
+            System.out.println("ENVIEI um delete especifico");
+            message = "DELETE " + fileId + "\n";
+            try {
+                storage.sendDelete(fileId);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            System.out.println("2");
+        }
+        else{
+
+            System.out.println("ENVIEI um delete normal");
+            message = "DELETE " + fileId + " " + address.getAddress().getHostAddress() + " " + this.port + "\n";
+            
+        }
+        
         try {
             sendMessage(message, this.successor.getInetSocketAddress());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+        storage.removeFileLocation(fileId);
         System.out.println("end delete");
         return "";
     }
@@ -372,6 +398,12 @@ public class Peer implements RmiRemote {
         File file = new File(fileName);
         byte[] body = new byte[(int) file.length()];
 
+        try {
+            body = Files.readAllBytes(file.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
         OutsidePeer receiverPeer = fingerTable.getNearestPeer(fileId);
         String message = "REMOVED " + fileId + " " + getAddress().getAddress().getHostAddress() + " "
                 + getAddress().getPort() + " " + body.length + "\n";
