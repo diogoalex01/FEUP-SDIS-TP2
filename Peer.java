@@ -7,16 +7,16 @@ import java.math.BigInteger;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+
+
 
 public class Peer implements RmiRemote {
     private BigInteger id;
@@ -214,10 +214,8 @@ public class Peer implements RmiRemote {
         });
     }
 
-    // TODO check if its your id
     @Override
     public String backup(String fileName, int replicationDegree) {
-        System.out.println("Backup");
 
         if (fingerTable.getSize() == 0) {
             System.out.println("There are no peers available");
@@ -246,16 +244,9 @@ public class Peer implements RmiRemote {
         // FORWARD <file_key> <rep_degree> <InetAddress> <port> <body>
 
         if (body != null) {
-            // System.out.println("body " + new String(body));
-            // if (receiverPeer.getId() == fileId) {
-            // // TODO: work in progress
-            // message = "BACKUP " + fileId + " " + replicationDegree + " " + body.length +
-            // "\n";
-            // } else {
 
             // Between this peer and its predecessor
             if (Helper.middlePeer(fileId, this.predecessor.getId(), id)) {
-                System.out.println("SENT BACKUP");
                 storage.initializeFileLocation(fileId);
                 message = "BACKUP " + address.getAddress().getHostAddress() + " " + address.getPort() + " "
                         + successor.getInetSocketAddress().getAddress().getHostAddress() + " "
@@ -263,22 +254,19 @@ public class Peer implements RmiRemote {
                         + body.length + "\n";
 
                 try {
-                    System.out.println("receiver peer " + receiverPeer.getId());
+                    System.out.println("Sent message to peer: " + receiverPeer.getId());
                     if (!successor.testSuccessor()) {
                         sendMessage(message, body, successor.getInetSocketAddress());
                     } else {
                         sendMessage(message, body, nextSuccessor.getInetSocketAddress());
                     }
-                    // sendMessage(message, body, successor.getInetSocketAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             } else {
-                System.out.println("SENT FORWARD");
                 message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
                 try {
-                    System.out.println("receiver peer " + receiverPeer.getId());
-
+                    System.out.println("Sent message to peer: " + receiverPeer.getId());
                     sendMessage(message, body, receiverPeer.getInetSocketAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -331,31 +319,23 @@ public class Peer implements RmiRemote {
         BigInteger fileId = Helper.getFileId(fileName);
 
         if (storage.hasFileStored(fileId)) {
-            System.out.println("ESTOU A APAGAR LOGO O FILE");
             storage.removeStoredFile(fileId);
-            System.out.println("Vou apagar");
             Helper.deleteFile(fileId.toString(), getStorageDirPath(), getBackupDirPath());
         }
         this.storage.removeAskedFile(fileId);
-        
-        if(Helper.middlePeer(fileId, getPredecessor().getId(), getId())){
-            System.out.println("ENVIEI um delete especifico");
+
+        if (Helper.middlePeer(fileId, getPredecessor().getId(), getId())) {
             message = "DELETE " + fileId + "\n";
             try {
                 storage.sendDelete(fileId);
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            System.out.println("2");
-        }
-        else{
-
-            System.out.println("ENVIEI um delete normal");
+        } else {
             message = "DELETE " + fileId + " " + address.getAddress().getHostAddress() + " " + this.port + "\n";
-            
+
         }
-        
+
         try {
             sendMessage(message, this.successor.getInetSocketAddress());
         } catch (IOException e) {
@@ -403,7 +383,7 @@ public class Peer implements RmiRemote {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
+
         OutsidePeer receiverPeer = fingerTable.getNearestPeer(fileId);
         String message = "REMOVED " + fileId + " " + getAddress().getAddress().getHostAddress() + " "
                 + getAddress().getPort() + " " + body.length + "\n";
@@ -416,25 +396,6 @@ public class Peer implements RmiRemote {
         }
     }
 
-    @Override
-    public String state() {
-        // String state = "\n> Peer ID: " + id;
-        // state += "\n----------------------------------";
-        // state += "\n------------- Backups ------------\n";
-        // state += storage.print();
-        // state += "Maximum Storage Capacity: " + storage.getAvailableStorage() + "
-        // KBytes";
-        // DecimalFormat decimalFormat = new DecimalFormat("###.## %");
-        // double ratio = storage.getAvailableStorage() != 0
-        // ? (double) storage.getOccupiedStorage() / storage.getAvailableStorage()
-        // : 0;
-        // state += "\nOccupied Storage: " + storage.getOccupiedStorage() + " KBytes ( "
-        // + decimalFormat.format(ratio)
-        // + " )\n";
-
-        return "state";
-    }
-
     public String sendMessage(String message, InetSocketAddress messageReceiver)
             throws UnknownHostException, IOException {
         SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -443,13 +404,9 @@ public class Peer implements RmiRemote {
 
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-        // System.out.println(message);
+        //System.out.println(message);
         out.writeBytes(message);
         String response = in.readLine();
-        // in.close();
-        // out.close();
-        // System.out.println("---9");
-        // sslSocket.close();
         return response;
     }
 
@@ -461,7 +418,7 @@ public class Peer implements RmiRemote {
 
         DataOutputStream out = new DataOutputStream(sslSocket.getOutputStream());
         DataInputStream in = new DataInputStream(sslSocket.getInputStream());
-        System.out.println(message);
+        //System.out.println(message);
         out.writeBytes(message);
         out.flush();
         sslSocket.getOutputStream().write(body);
@@ -476,8 +433,6 @@ public class Peer implements RmiRemote {
      * Stores Class Records to a file
      */
     public static void storeFile() {
-
-        System.out.println("Hello");
 
         if (getFingerTable().getSize() == 0 || getSuccessor() == null) {
             return;

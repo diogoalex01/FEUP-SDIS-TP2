@@ -1,5 +1,4 @@
 import java.io.IOException;
-
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -25,7 +24,6 @@ class RequestListener implements Runnable {
 
         while (true) {
             SSLSocket sslSocket;
-            // System.out.println("listining");
 
             try {
                 sslSocket = null;

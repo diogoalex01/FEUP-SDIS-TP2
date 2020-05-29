@@ -27,7 +27,6 @@ class RequestHandler implements Runnable {
         // FINDSUCCESSOR <peer_key> <ip_address> <port>
         // Second peer to join
         if (this.peer.getSuccessor() == null) {
-            // System.out.println("if do null");
             this.peer.setSuccessor(newPeer);
             this.peer.setPredecessor(newPeer);
             this.peer.getFingerTable().add(this.peer.getSuccessor(), 0);
@@ -38,7 +37,6 @@ class RequestHandler implements Runnable {
         }
         // New peer is between him and his successor
         else if (Helper.middlePeer(new BigInteger(request[1]), this.peer.getId(), this.peer.getSuccessor().getId())) {
-            // System.out.println("if do middle");
             Messenger.sendUpdatePosition(this.peer.getAddress().getAddress().getHostAddress(), this.peer.getPort(),
                     this.peer.getSuccessor().getInetSocketAddress().getAddress().getHostAddress(),
                     this.peer.getSuccessor().getInetSocketAddress().getPort(), newPeer.getInetSocketAddress());
@@ -46,7 +44,6 @@ class RequestHandler implements Runnable {
         }
         // The position of the new peer isn't known
         else {
-            // System.out.println("if do forward");
             Messenger.sendFindSuccessor(new BigInteger(request[1]), request[2], Integer.parseInt(request[3]),
                     this.peer.getSuccessor().getInetSocketAddress());
         }
@@ -63,11 +60,7 @@ class RequestHandler implements Runnable {
         String message = "PREDECESSOR "
                 + this.peer.getPredecessor().getInetSocketAddress().getAddress().getHostAddress() + " "
                 + this.peer.getPredecessor().getInetSocketAddress().getPort() + "\n";
-        // System.out.println("x" + message);
-        // InetSocketAddress socket = new InetSocketAddress(request[1],
-        // Integer.parseInt(request[2]));
-        // SSLSocket sslSocketPre = Messenger.sendMessage(message, socket);
-        // sslSocketPre.close();
+
         return message;
     }
 
@@ -81,8 +74,6 @@ class RequestHandler implements Runnable {
         this.peer.setSuccessor(new OutsidePeer(new InetSocketAddress(successorIp, successorPort)));
         this.peer.getSuccessor().notifySuccessor(this.peer.getAddress(),
                 this.peer.getSuccessor().getInetSocketAddress());
-        // System.out.println("Successor id: " + this.peer.getSuccessor().getId());
-        // System.out.println("predecessor id: " + this.peer.getPredecessor().getId());
     }
 
     private void getFinger(String[] request) {
@@ -147,7 +138,6 @@ class RequestHandler implements Runnable {
         }
 
         String message = "GIVEFILE " + fileKey + " " + body.length + "\n";
-        System.out.println("MANDEI GIVE FILE");
         InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
         try {
             this.peer.sendMessage(message, body, inetSocketAddress);
@@ -164,21 +154,14 @@ class RequestHandler implements Runnable {
             BufferedReader in = null;
 
             String responseMess = null;
-            // while (responseMess == null) {
             in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-            // if (sslSocket.isClosed() || in == null || sslSocket == null)
-            // continue;
+
             responseMess = in.readLine();
-            // System.out.println("Reading...." + responseMess + " " +
-            // sslSocket.isClosed());
-            // }
 
             String[] request = responseMess.split(" ");
 
             String response = "\n";
             byte[] file;
-            // System.out.println("received: " + request[0] + " " + request[1] + " " +
-            // request[3]);
 
             switch (request[0]) {
                 case "FINDSUCCESSOR":
@@ -241,7 +224,6 @@ class RequestHandler implements Runnable {
                     response = protocolHandler.restoreHandler(request);
                     break;
                 case "REMOVELOCATION":
-                    System.out.println("\nRECEBI REMOVELOCATION\n");
                     response = "OK\n";
                     BigInteger fileKey = new BigInteger(request[1]);
                     String ipAddress = request[2];
@@ -255,9 +237,7 @@ class RequestHandler implements Runnable {
                     out.flush();
                     break;
                 case "REMOVED":
-                    System.out.println("remov:" + responseMess);
                     file = new byte[Integer.parseInt(request[4])];
-                    System.out.println("\n******\nFile size é:" + file.length);
                     InputStream inputStreamRemoved = sslSocket.getInputStream();
                     ByteArrayOutputStream bufferRemoved = new ByteArrayOutputStream();
                     int bytesReadRemoved = 0;
@@ -266,7 +246,6 @@ class RequestHandler implements Runnable {
                     }
                     bufferRemoved.flush();
                     file = bufferRemoved.toByteArray();
-                    System.out.println("byee read: " + file.length);
                     response = protocolHandler.reclaimHandler(request, file);
                     bufferRemoved.close();
                     inputStreamRemoved.close();
@@ -282,7 +261,6 @@ class RequestHandler implements Runnable {
                     out.flush();
                     break;
                 case "GIVEFILE":
-                    System.out.println("RECEBI GIVEFILE");
                     file = new byte[Integer.parseInt(request[2])];
                     InputStream inputStreamFile = sslSocket.getInputStream();
                     ByteArrayOutputStream bufferFile = new ByteArrayOutputStream();

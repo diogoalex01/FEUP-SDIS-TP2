@@ -12,5 +12,4 @@ public interface RmiRemote extends Remote {
 
     String reclaim(int space) throws IOException, NoSuchAlgorithmException;
 
-    String state() throws IOException, NoSuchAlgorithmException;
 }

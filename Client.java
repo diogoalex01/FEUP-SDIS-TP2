@@ -44,14 +44,13 @@ public class Client {
     private static void parseArgs(String[] args, RmiRemote peer) throws Exception {
         switch (protocol) {
             case "BACKUP":
-            int repDegree;
-                if(args.length == 3)
-                {
+                int repDegree;
+                if (args.length == 3) {
                     repDegree = 2;
-                }else{
+                } else {
                     repDegree = Integer.parseInt(args[3]);
                 }
-                
+
                 peer.backup(filePath, repDegree);
                 System.out.println("\nBackup finished successfully\n");
                 break;
@@ -70,10 +69,6 @@ public class Client {
                 int size = Integer.parseInt(args[2]);
                 peer.reclaim(size);
                 System.out.println("\nSpace reclaimed successfully\n");
-                break;
-
-            case "STATE":
-                peer.state();
                 break;
         }
     }

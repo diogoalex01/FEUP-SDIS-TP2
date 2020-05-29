@@ -1,8 +1,6 @@
 import java.math.BigInteger;
 import java.util.ArrayList;
-
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 
 public class FingerTable {
     private ArrayList<OutsidePeer> table;

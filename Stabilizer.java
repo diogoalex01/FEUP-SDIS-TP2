@@ -17,10 +17,7 @@ public class Stabilizer implements Runnable {
 			if (peer.getSuccessor() != null) {
 				if (peer.getSuccessor().testSuccessor()) {
 					if (peer.updateToNextPeer()) {
-						System.out.println("NO NEXT SUCCESSOR");
 						return;
-					} else {
-
 					}
 				}
 				OutsidePeer newNextPeer = this.peer.getSuccessor().getNextSuccessor();

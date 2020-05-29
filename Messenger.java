@@ -2,7 +2,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
-
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -26,12 +25,9 @@ public class Messenger {
             int successorPort, InetSocketAddress address) {
         String message = "UPDATEPOSITION " + predecessorIp + " " + predecessorPort + " " + successorIp + " "
                 + successorPort + "\n";
-        // System.out.println("update position message " + message);
         SSLSocket sslSocket = null;
         try {
             sslSocket = sendMessage(message, address);
-            // System.out.println("---1");
-            // sslSocket.close();
         } catch (Exception e) {
         }
     }
@@ -44,8 +40,6 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, address);
-            // System.out.println("---2");
-            // sslSocket.close();
         } catch (Exception e) {
         }
     }
@@ -58,8 +52,6 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, entryAddress);
-            // System.out.println("---3");
-            // sslSocket.close();
         } catch (Exception e) {
         }
     }
@@ -72,8 +64,6 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, destinationIpAddress);
-            // System.out.println("---4");
-            // sslSocket.close();
         } catch (Exception e) {
         }
     }
@@ -85,8 +75,6 @@ public class Messenger {
 
         try {
             sslSocket = sendMessage(message, socket);
-            // System.out.println("---3");
-            // sslSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -30,11 +30,11 @@ public class Helper {
 
     public static boolean middlePeer(BigInteger id, BigInteger lBound, BigInteger rBound) {
         if (lBound.compareTo(rBound) > 0)
-            if(id.compareTo(lBound) >= 0 || id.compareTo(rBound) <= 0){
+            if (id.compareTo(lBound) >= 0 || id.compareTo(rBound) <= 0) {
                 return true;
             }
 
-        if(id.compareTo(lBound) >= 0 && id.compareTo(rBound) <= 0){
+        if (id.compareTo(lBound) >= 0 && id.compareTo(rBound) <= 0) {
             return true;
         }
 

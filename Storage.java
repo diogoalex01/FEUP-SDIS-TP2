@@ -3,15 +3,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Serializable;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-
 import java.net.InetSocketAddress;
 import javax.net.ssl.SSLSocket;
 
@@ -145,17 +142,12 @@ public class Storage {
     public void removePeerLocation(BigInteger fileId, String ipAddress, int port) {
         OutsidePeer peer = new OutsidePeer(new InetSocketAddress(ipAddress, port));
 
-        System.out.println("\n\nEntrei no remove VOU REMOVER" + peer.getId() +" \n\n");
         if (fileLocation.containsKey(fileId)) {
-            System.out.println("Tenho a location do file" + fileId);
             List<OutsidePeer> peers = fileLocation.get(fileId);
             if (peers.contains(peer)) {
-                System.out.println("Este peer é location do file" + fileId);
-                System.out.println("Tinha size " + peers.size());
                 peers.remove(peer);
                 fileLocation.remove(fileId);
                 fileLocation.put(fileId, peers);
-                System.out.println("Agora tenho size " + fileLocation.values().size());
             }
         }
     }
@@ -165,7 +157,6 @@ public class Storage {
         String message = new String();
         String response = new String();
         SSLSocket sslSocket = null;
-        System.out.println("tamanho vetor " + peers.size());
 
         for (int i = 0; i < peers.size(); i++) {
             InetSocketAddress socket = peers.get(i).getInetSocketAddress();
@@ -178,9 +169,7 @@ public class Storage {
             }
             response = in.readLine();
             in.close();
-            // sslSocket.close();
             if (response.equals("SENT " + fileId)) {
-                System.out.println("RECEBI SENT");
                 return true;
             }
         }
@@ -198,7 +187,6 @@ public class Storage {
                 message = "DELETE " + fileId + "\n";
                 Messenger.sendMessage(message, socket);
             }
-            // sslSocket.close();
         }
 
         return true;
@@ -231,66 +219,13 @@ public class Storage {
      */
     public BigInteger randomFile() {
         Random rand = new Random();
-        System.out.println("STOREFILES SIZE: " + storedFiles.size());
         int randomNumber = rand.nextInt(storedFiles.size());
 
-        System.out.println("random file " + randomNumber);
         BigInteger hash = storedFiles.get(randomNumber);
 
         return hash;
     }
 
-    // public String print() {
-    // for (String fileID : fileNames.keySet()) {
-    // state += "\n> File path: " + fileNames.get(fileID);
-    // state += "\n File ID: " + fileID;
-    // Set<String> ChunkIDset = storedRecord.keySet().stream().filter(string ->
-    // string.endsWith("_" + fileID))
-    // .collect(Collectors.toSet());
-
-    // if (ChunkIDset.size() != 0)
-    // state += "\n Desired Replication Degree: "
-    // +
-    // storedRecord.get(ChunkIDset.iterator().next()).getDesiredReplicationDegree();
-    // state += "\n > Chunk Information: ";
-    // for (String chunkKey : ChunkIDset) {
-    // state += "\n Chunk ID: " + storedRecord.get(chunkKey).getID();
-    // state += "\n Actual Replication Degree: "
-    // + storedRecord.get(chunkKey).getActualReplicationDegree() + "\n";
-    // }
-    // }
-
-    // state += "\n";
-    // state += "-------- Stored File Chunks --------\n";
-    // for (String fileID : fileNames) {
-    // try {
-    // Set<String> ChunkIDset = storedChunks.keySet().stream().filter(string ->
-    // string.endsWith("_" + fileID))
-    // .collect(Collectors.toSet());
-
-    // for (String chunkKey : ChunkIDset) {
-    // final Path path = Paths
-    // .get(this.backupDir + "/" + fileID + "/" +
-    // storedChunks.get(chunkKey).getID());
-    // // Checks if file exists
-    // if (Files.exists(path)) {
-    // state += "\n> Chunk ID: " + storedChunks.get(chunkKey).getFileID() + "_"
-    // + storedChunks.get(chunkKey).getID();
-    // state += "\n Size: " + storedChunks.get(chunkKey).getSize() + " Bytes";
-    // state += "\n Actual Replication Degree: "
-    // + storedChunks.get(chunkKey).getActualReplicationDegree();
-    // }
-    // }
-    // } catch (Exception e) {
-    // System.err.println("Path exception: " + e.toString());
-    // e.printStackTrace();
-    // }
-    // }
-
-    // state += "\n\n";
-
-    // return state;
-    // }
 
     public void print() {
         System.out.println("FL----------------------- ");
