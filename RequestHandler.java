@@ -10,6 +10,9 @@ import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.zip.InflaterOutputStream;
 
 import javax.net.ssl.SSLSocket;
@@ -118,7 +121,7 @@ class RequestHandler implements Runnable {
         BigInteger fileKey = new BigInteger(request[1]);
         OutsidePeer newEntry = new OutsidePeer(new InetSocketAddress(request[2], Integer.parseInt(request[3])));
         this.peer.getStorage().addFileLocation(fileKey, newEntry);
-        if(!Helper.middlePeer(fileKey, this.peer.getPredecessor().getId(), this.peer.getId())){
+        if (!Helper.middlePeer(fileKey, this.peer.getPredecessor().getId(), this.peer.getId())) {
 
             String message = "REMOVETABLE " + fileKey + "\n";
             Messenger.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
@@ -129,7 +132,6 @@ class RequestHandler implements Runnable {
         // REMOVETABLE key
         this.peer.getStorage().removeFileLocation(new BigInteger(request[1]));
     }
-
 
     private String findFile(String[] request) {
         String fileKey = request[1];
@@ -150,7 +152,7 @@ class RequestHandler implements Runnable {
             e.printStackTrace();
         }
 
-        String message = "GIVEFILE " + fileKey + " " + body.length + " " + "\n";
+        String message = "GIVEFILE " + fileKey + " " + body.length + "\n";
         System.out.println("MANDEI GIVE FILE");
         InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
         try {
@@ -244,6 +246,7 @@ class RequestHandler implements Runnable {
                     response = protocolHandler.restoreHandler(request);
                     break;
                 case "REMOVELOCATION":
+                    System.out.println("\nRECEBI REMOVELOCATION\n");
                     response = "OK\n";
                     BigInteger fileKey = new BigInteger(request[1]);
                     String ipAddress = request[2];
@@ -257,15 +260,18 @@ class RequestHandler implements Runnable {
                     out.flush();
                     break;
                 case "REMOVED":
+                    System.out.println("remov:" + responseMess);
                     file = new byte[Integer.parseInt(request[4])];
+                    System.out.println("\n******\nFile size é:" + file.length);
                     InputStream inputStreamRemoved = sslSocket.getInputStream();
                     ByteArrayOutputStream bufferRemoved = new ByteArrayOutputStream();
-                    int bytesReadRemoved;
+                    int bytesReadRemoved = 0;
                     while ((bytesReadRemoved = inputStreamRemoved.read(file)) != -1) {
                         bufferRemoved.write(file, 0, bytesReadRemoved);
                     }
                     bufferRemoved.flush();
                     file = bufferRemoved.toByteArray();
+                    System.out.println("byee read: " + file.length);
                     response = protocolHandler.reclaimHandler(request, file);
                     bufferRemoved.close();
                     inputStreamRemoved.close();

@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
@@ -60,7 +61,6 @@ public class ProtocolHandler {
         String myIpAddress = this.peer.getAddress().getAddress().getHostAddress();
         InetSocketAddress inetSocketAddress = new InetSocketAddress(ipAddress, port);
         InetSocketAddress successorInetSocketAddress = new InetSocketAddress(succesorIpAddress, successorPort);
-   
 
         try {
             String fileKey = request[5];
@@ -68,7 +68,7 @@ public class ProtocolHandler {
             // TODO: ver se o file foi enviado por mim
             System.out.println("!!!MANDARAM ME O BACKUP \n\n");
             if (replicationDegree < 1 && replicationDegree != -1) {
-    
+
                 return "OK \n";
             }
 
@@ -84,10 +84,9 @@ public class ProtocolHandler {
 
             if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
 
-                if(replicationDegree > 1 || replicationDegree == -1)
-                {
+                if (replicationDegree > 1 || replicationDegree == -1) {
 
-                    if(replicationDegree != -1){
+                    if (replicationDegree != -1) {
                         replicationDegree--;
                     }
 
@@ -98,21 +97,21 @@ public class ProtocolHandler {
 
                     if (!outsidePeer.testSuccessor()) {
                         Peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
-                    }
-                    else{
+                    } else {
                         OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
                         Peer.sendMessage(message1, body, otherSuccessor.getInetSocketAddress());
                     }
-                    
-                }
-/*
-                System.out.println("mandei o 1 stored");
-                Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, inetSocketAddress);
-    
 
-                System.out.println("mandei o 2 stored : " + succesorIpAddress + "porta: " + successorPort);
-                Messenger.sendStored(new BigInteger(fileKey), myIpAddress, myPort, successorInetSocketAddress);
-*/
+                }
+                /*
+                 * System.out.println("mandei o 1 stored"); Messenger.sendStored(new
+                 * BigInteger(fileKey), myIpAddress, myPort, inetSocketAddress);
+                 * 
+                 * 
+                 * System.out.println("mandei o 2 stored : " + succesorIpAddress + "porta: " +
+                 * successorPort); Messenger.sendStored(new BigInteger(fileKey), myIpAddress,
+                 * myPort, successorInetSocketAddress);
+                 */
                 return "OK \n";
             }
             int space = this.peer.getStorage().spaceOccupied(this.peer.getBackupDirPath())
@@ -121,13 +120,12 @@ public class ProtocolHandler {
 
             if (this.peer.getStorage().hasAskedForFile(new BigInteger(fileKey))
                     || (space > availableSpace && availableSpace != -1)) {
-                        if (!outsidePeer.testSuccessor()) {
-                            Peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
-                        }
-                        else{
-                            OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
-                            Peer.sendMessage(message, body, otherSuccessor.getInetSocketAddress());
-                        }
+                if (!outsidePeer.testSuccessor()) {
+                    Peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
+                } else {
+                    OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
+                    Peer.sendMessage(message, body, otherSuccessor.getInetSocketAddress());
+                }
 
                 return "OK \n";
             }
@@ -222,7 +220,6 @@ public class ProtocolHandler {
         String fileKey = request[1];
         String ipAddress = request[2];
         int port = Integer.parseInt(request[3]);
-        this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
         this.peer.getStorage().removeAskedFile(new BigInteger(fileKey));
 
         if (this.peer.getStorage().hasFileStored(new BigInteger(fileKey))) {
@@ -231,12 +228,26 @@ public class ProtocolHandler {
         }
 
         if (!(ipAddress.equals(this.peer.getAddress().getHostName())) && (this.peer.getPort() != port)) {
-            String message = "DELETE " + fileKey + " " + ipAddress + " " + port + "\n";
-            try {
-                this.peer.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (this.peer.getStorage().hasFileLocation(new BigInteger(fileKey))) {
+                try {
+                    sendDelete(new BigInteger(fileKey), ipAddress, port);
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
+            } else {
+
+                this.peer.getStorage().removeFileLocation(new BigInteger(fileKey));
+
+                String message = "DELETE " + fileKey + " " + ipAddress + " " + port + "\n";
+                try {
+                    this.peer.sendMessage(message, this.peer.getSuccessor().getInetSocketAddress());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+
         }
 
         return "OK \n";
@@ -252,11 +263,11 @@ public class ProtocolHandler {
         OutsidePeer outsidePeer = this.peer.getSuccessor();
         this.peer.getStorage().removePeerLocation(fileKey, ipAddress, port);
 
-        // Peer that holds table with file locations 
+        // Peer that holds table with file locations
         if (Helper.middlePeer(fileKey, peer.getPredecessor().getId(), peer.getId())) {
 
-            String message1 = "REMOVELOCATION " + request[1] + " " + request[2] + " " + request[3];
-    
+            String message1 = "REMOVELOCATION " + request[1] + " " + request[2] + " " + request[3] + "\n";
+
             String message = "BACKUP " + this.peer.getAddress().getAddress().getHostAddress() + " "
                     + this.peer.getAddress().getPort() + " "
                     + this.peer.getSuccessor().getInetSocketAddress().getAddress().getHostAddress() + " "
@@ -264,22 +275,21 @@ public class ProtocolHandler {
                     + body.length + "\n";
             try {
                 if (!outsidePeer.testSuccessor()) {
+                    System.out.println("A mandar para o successor");
                     this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
                     this.peer.sendMessage(message1, body, outsidePeer.getInetSocketAddress());
-                }
-                else{
+                } else {
+                    System.out.println("A mandar para o nextsuccessor");
                     OutsidePeer otherSuccessor = this.peer.getNextSuccessor();
                     this.peer.sendMessage(message, body, otherSuccessor.getInetSocketAddress());
                     this.peer.sendMessage(message1, body, otherSuccessor.getInetSocketAddress());
                 }
-                
             } catch (IOException e) {
             }
             return "OK \n";
         }
 
-        String message = "REMOVED " + request[1] + " " + request[2] + " " + request[3]
-        + " " + request[4] + "\n ";
+        String message = "REMOVED " + request[1] + " " + request[2] + " " + request[3] + " " + request[4] + "\n";
         System.out.println("Fiz forward do removed");
         try {
             this.peer.sendMessage(message, body, outsidePeer.getInetSocketAddress());
@@ -298,15 +308,15 @@ public class ProtocolHandler {
 
         System.out.println("SAVING file...");
         try {
-            final Path filePath = Paths.get(folderDirectory);
+            final Path filePathDir = Paths.get(folderDirectory);
+            final Path filePath = Paths.get(fileDirectory);
+            if (Files.notExists(filePathDir))
+                Files.createDirectories(filePathDir);
 
-            if (Files.notExists(filePath))
-                Files.createDirectories(filePath);
-
-            FileOutputStream outputStream = new FileOutputStream(fileDirectory, true);
-
-            outputStream.write(body);
-            outputStream.close();
+            // FileOutputStream outputStream = new FileOutputStream(fileDirectory, true);
+            Files.newOutputStream(filePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE).write(body);
+            // outputStream.write(body);
+            // outputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -322,5 +332,23 @@ public class ProtocolHandler {
         peer.getStorage().addFileLocation(fileKey, outsidePeer);
         System.out.println("stored i guess");
         return "OK \n";
+    }
+
+    public boolean sendDelete(BigInteger fileId, String ipAddress, int port) throws IOException {
+        List<OutsidePeer> peers = this.peer.getStorage().getFileLocations().get(fileId);
+        String message = new String();
+
+        System.out.println("tamanho vetor " + peers.size());
+
+        for (int i = 0; i < peers.size(); i++) {
+            InetSocketAddress socket = peers.get(i).getInetSocketAddress();
+            // FINDFILE file_key ip_address port
+            message = "DELETE " + fileId + " " + ipAddress + " " + port + "\n";
+            Messenger.sendMessage(message, socket);
+
+            // sslSocket.close();
+        }
+
+        return true;
     }
 }

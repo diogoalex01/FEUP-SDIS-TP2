@@ -257,29 +257,27 @@ public class Peer implements RmiRemote {
             if (Helper.middlePeer(fileId, this.predecessor.getId(), id)) {
 
                 storage.initializeFileLocation(fileId);
-                 message = "BACKUP " + address.getAddress().getHostAddress() + " "
-                        + address.getPort() + " "
+                message = "BACKUP " + address.getAddress().getHostAddress() + " " + address.getPort() + " "
                         + successor.getInetSocketAddress().getAddress().getHostAddress() + " "
-                        + successor.getInetSocketAddress().getPort() + " " + fileId+ " "
-                        + replicationDegree + " " + body.length + "\n";
+                        + successor.getInetSocketAddress().getPort() + " " + fileId + " " + replicationDegree + " "
+                        + body.length + "\n";
 
-                        try {
-                            System.out.println("receiver peer " + receiverPeer.getId());
-                            if (!successor.testSuccessor()) {
-                                sendMessage(message, body, successor.getInetSocketAddress());
-                            }
-                            else{
-                                sendMessage(message, body, nextSuccessor.getInetSocketAddress());
-                            }
-                            //sendMessage(message, body, successor.getInetSocketAddress());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                try {
+                    System.out.println("receiver peer " + receiverPeer.getId());
+                    if (!successor.testSuccessor()) {
+                        sendMessage(message, body, successor.getInetSocketAddress());
+                    } else {
+                        sendMessage(message, body, nextSuccessor.getInetSocketAddress());
+                    }
+                    // sendMessage(message, body, successor.getInetSocketAddress());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             } else {
                 message = "FORWARD " + fileId + " " + replicationDegree + " " + body.length + "\n";
                 try {
                     System.out.println("receiver peer " + receiverPeer.getId());
-                    
+
                     sendMessage(message, body, receiverPeer.getInetSocketAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -287,9 +285,8 @@ public class Peer implements RmiRemote {
             }
 
             System.out.println(message);
-            
-        }
 
+        }
 
         System.out.println("end Backup");
         return "OK";
@@ -371,20 +368,17 @@ public class Peer implements RmiRemote {
     }
 
     public static void sendRemoved(BigInteger fileId) {
-        byte[] body = null;
         String fileName = getBackupDirPath() + "/" + fileId.toString();
         File file = new File(fileName);
-        try {
-            body = Files.readAllBytes(file.toPath());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        byte[] body = new byte[(int) file.length()];
 
         OutsidePeer receiverPeer = fingerTable.getNearestPeer(fileId);
-        String message = "REMOVED " + fileId + " " + getAddress().getAddress().getHostAddress() + " " + getAddress().getPort()
-                + " " + body.length + "\n ";
+        String message = "REMOVED " + fileId + " " + getAddress().getAddress().getHostAddress() + " "
+                + getAddress().getPort() + " " + body.length + "\n";
         try {
+
             sendMessage(message, body, receiverPeer.getInetSocketAddress());
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -452,8 +446,7 @@ public class Peer implements RmiRemote {
     public static void storeFile() {
 
         System.out.println("Hello");
-    
-  
+
         if (getFingerTable().getSize() == 0 || getSuccessor() == null) {
             return;
         }
@@ -487,7 +480,6 @@ public class Peer implements RmiRemote {
 
     }
 
-
     public static void main(String[] args) {
         if (args.length != 3 && args.length != 5) {
             System.out.println(
@@ -520,6 +512,6 @@ public class Peer implements RmiRemote {
         }
 
         Runtime.getRuntime().addShutdownHook(new Thread(Peer::storeFile));
-        
+
     }
 }

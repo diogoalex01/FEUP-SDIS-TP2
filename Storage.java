@@ -140,7 +140,8 @@ public class Storage {
 
     public void removePeerLocation(BigInteger fileId, String ipAddress, int port) {
         OutsidePeer peer = new OutsidePeer(new InetSocketAddress(ipAddress, port));
-        System.out.println("\n\nEntrei no remove\n\n");
+
+        System.out.println("\n\nEntrei no remove VOU REMOVER" + peer.getId() +" \n\n");
         if (fileLocation.containsKey(fileId)) {
             System.out.println("Tenho a location do file" + fileId);
             List<OutsidePeer> peers = fileLocation.get(fileId);
@@ -153,7 +154,6 @@ public class Storage {
                 System.out.println("Agora tenho size " + fileLocation.values().size());
             }
         }
-
     }
 
     public boolean getFile(BigInteger fileId, String ipAddress, int port) throws IOException {
@@ -169,8 +169,7 @@ public class Storage {
             message = "FINDFILE " + fileId + " " + ipAddress + " " + port + "\n";
             sslSocket = Messenger.sendMessage(message, socket);
             BufferedReader in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
-            if(sslSocket.isInputShutdown())
-            {
+            if (sslSocket.isInputShutdown()) {
                 continue;
             }
             response = in.readLine();
